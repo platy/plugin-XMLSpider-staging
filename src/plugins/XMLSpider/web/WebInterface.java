@@ -18,6 +18,7 @@ import freenet.support.api.HTTPRequest;
 public class WebInterface {
 	private final XMLSpider xmlSpider;
 	private PageMaker pageMaker;
+	private IndexWriterToadlet indexWriterToadlet;
 	private ConfigPageToadlet configToadlet;
 	private MainPageToadlet mainToadlet;
 	private final ToadletContainer toadletContainer;
@@ -40,6 +41,7 @@ public class WebInterface {
 		
 		toadletContainer.register(mainToadlet = new MainPageToadlet(client, xmlSpider), "XMLSpider", "/xmlspider/", true, "XMLSpider", "XMLSpider", true, null);
 		toadletContainer.register(configToadlet = new ConfigPageToadlet(client, xmlSpider), "XMLSpider", "/xmlspider/config", true, "Configure XMLSpider", "Configure XMLSpider", true, null);
+		toadletContainer.register(indexWriterToadlet = new IndexWriterToadlet(client, xmlSpider), "XMLSpider", "/xmlspider/indexwriter", true, "Write Index", "Write Index", true, null);
 	}
 
 	/**

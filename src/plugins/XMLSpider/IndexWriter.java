@@ -12,6 +12,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
+import java.util.Iterator;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -29,6 +30,7 @@ import org.w3c.dom.Text;
 import plugins.XMLSpider.db.Config;
 import plugins.XMLSpider.db.Page;
 import plugins.XMLSpider.db.PerstRoot;
+import plugins.XMLSpider.db.Status;
 import plugins.XMLSpider.db.Term;
 import plugins.XMLSpider.db.TermPosition;
 import plugins.XMLSpider.org.garret.perst.IterableIterator;
@@ -54,14 +56,18 @@ public class IndexWriter {
 	IndexWriter() {
 	}
 
-	public synchronized void makeIndex(PerstRoot perstRoot) throws Exception {
+	public synchronized void makeIndex(PerstRoot perstRoot, String indexdir, boolean separatepageindex) throws Exception {
 		logMINOR = Logger.shouldLog(Logger.MINOR, this);
 		try {
 			time_taken = System.currentTimeMillis();
 
 			Config config = perstRoot.getConfig();
 
-			File indexDir = new File(config.getIndexDir());
+			if(indexdir.equals("") || indexdir == null)
+				indexdir = config.getIndexDir();
+			else
+				config.setIndexDir(indexdir);
+			File indexDir = new File(indexdir);
 			if(((!indexDir.exists()) && !indexDir.mkdirs()) || (indexDir.exists() && !indexDir.isDirectory())) {
 				Logger.error(this, "Cannot create index directory: " + indexDir);
 				return;
@@ -71,8 +77,10 @@ public class IndexWriter {
 				Logger.minor(this, "Spider: regenerating index. MAX_SIZE=" + config.getIndexSubindexMaxSize() +
 					", MAX_ENTRIES=" + config.getIndexMaxEntries());
 
-			makeSubIndices(perstRoot);
-			makeMainIndex(config);
+			if(separatepageindex)
+				makePageIndex(perstRoot);
+			makeSubIndices(perstRoot, separatepageindex);
+			makeMainIndex(config, separatepageindex);
 
 			time_taken = System.currentTimeMillis() - time_taken;
 
@@ -94,7 +102,7 @@ public class IndexWriter {
 	 * @throws IOException
 	 * @throws NoSuchAlgorithmException
 	 */
-	private void makeMainIndex(Config config) throws IOException, NoSuchAlgorithmException {
+	private void makeMainIndex(Config config, boolean separatepageindex ) throws IOException, NoSuchAlgorithmException {
 		// Produce the main index file.
 		if (logMINOR)
 			Logger.minor(this, "Producing top index...");
@@ -159,6 +167,8 @@ public class IndexWriter {
 			 * stored in the xml
 			 */
 			Element prefixElement = xmlDoc.createElementNS(null, "prefix");
+			prefixElement.setAttributeNS(null, "value", match + "");
+			
 			/* Adding word index */
 			Element keywordsElement = xmlDoc.createElementNS(null, "keywords");
 			for (int i = 0; i < indices.size(); i++) {
@@ -168,10 +178,15 @@ public class IndexWriter {
 				//the subindex element key will contain the bits used for matching in that subindex
 				keywordsElement.appendChild(subIndexElement);
 			}
+			
+			/* Specify whether index has separated page index */
+			Element pagesElement = xmlDoc.createElementNS(null, "pages");
+			pagesElement.setAttributeNS(null, "separateindex", separatepageindex ? "true" : "false");
 
-			prefixElement.setAttributeNS(null, "value", match + "");
+
 			rootElement.appendChild(prefixElement);
 			rootElement.appendChild(headerElement);
+			rootElement.appendChild(pagesElement);
 			rootElement.appendChild(keywordsElement);
 
 			/* Serialization */
@@ -206,6 +221,109 @@ public class IndexWriter {
 		//The parsing will start and nodes will be added as needed 
 
 	}
+	
+	private void makePageIndex(PerstRoot perstRoot) throws Exception{
+		final Config config = perstRoot.getConfig();
+		final long MAX_SIZE = config.getIndexSubindexMaxSize();
+		final int MAX_ENTRIES = config.getIndexMaxEntries();
+		
+		File outputFile = new File(config.getIndexDir() + "fileindex.xml");
+		BufferedOutputStream fos = null;
+
+		int count = 0;
+		int estimateSize = 0;
+		try {
+			DocumentBuilderFactory xmlFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder xmlBuilder;
+
+			try {
+				xmlBuilder = xmlFactory.newDocumentBuilder();
+			} catch (javax.xml.parsers.ParserConfigurationException e) {
+				throw new RuntimeException("Spider: Error while initializing XML generator", e);
+			}
+
+			DOMImplementation impl = xmlBuilder.getDOMImplementation();
+			/* Starting to generate index */
+			Document xmlDoc = impl.createDocument("", "file_index", null);
+			
+			Element rootElement = xmlDoc.getDocumentElement();
+			if (config.isDebug()) {
+				rootElement.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:debug", "urn:freenet:xmlspider:debug");
+				rootElement.appendChild(xmlDoc.createComment(new Date().toGMTString()));
+			}
+			
+			/* Adding header to the index */
+			Element headerElement = xmlDoc.createElementNS(null, "header");
+			/* -> title */
+			Element subHeaderElement = xmlDoc.createElementNS(null, "title");
+			Text subHeaderText = xmlDoc.createTextNode(config.getIndexTitle());
+			subHeaderElement.appendChild(subHeaderText);
+			headerElement.appendChild(subHeaderElement);
+
+			/* List of files referenced in this index */
+			Element filesElement = xmlDoc.createElementNS(null, "files"); /*
+																		 * filesElement !=
+																		 * fileElement
+																		 */
+			
+			Iterator<Page> pageIterator = perstRoot.getPages(Status.SUCCEEDED);
+			while (pageIterator.hasNext()) {
+				Page page = pageIterator.next();
+				synchronized (page) {
+					Element fileElement = xmlDoc.createElementNS(null, "file");
+					fileElement.setAttributeNS(null, "id", Long.toString(page.getId()));
+					fileElement.setAttributeNS(null, "key", page.getURI());
+					fileElement.setAttributeNS(null, "title", page.getPageTitle() != null ? page
+							.getPageTitle() : page.getURI());
+					
+					filesElement.appendChild(fileElement);
+					
+					count++;
+					
+					estimateSize += 15;
+					estimateSize += filesElement.getAttributeNS(null, "id").length();
+					estimateSize += filesElement.getAttributeNS(null, "key").length();
+					estimateSize += filesElement.getAttributeNS(null, "title").length();
+				}
+			}
+			
+			Element entriesElement = xmlDoc.createElementNS(null, "entries");
+			entriesElement.setAttributeNS(null, "value", count + "");
+
+			rootElement.appendChild(entriesElement);
+			rootElement.appendChild(headerElement);
+			rootElement.appendChild(filesElement);
+
+			/* Serialization */
+			DOMSource domSource = new DOMSource(xmlDoc);
+			TransformerFactory transformFactory = TransformerFactory.newInstance();
+			Transformer serializer;
+			
+			try {
+				serializer = transformFactory.newTransformer();
+			} catch (javax.xml.transform.TransformerConfigurationException e) {
+				throw new RuntimeException("Spider: Error while serializing XML (transformFactory.newTransformer())", e);
+			}
+			serializer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+			serializer.setOutputProperty(OutputKeys.INDENT, "yes");
+
+			fos = new BufferedOutputStream(new FileOutputStream(outputFile));
+			StreamResult resultStream = new StreamResult(fos);
+			
+			/* final step */
+			try {
+				serializer.transform(domSource, resultStream);
+			} catch (javax.xml.transform.TransformerException e) {
+				throw new RuntimeException("Spider: Error while serializing XML (transform())", e);
+			}
+		} finally {
+			Closer.close(fos);
+		}
+		
+
+		if (logMINOR)
+			Logger.minor(this, "Spider: indexes regenerated.");
+	}
 
 	/**
 	 * Generates the subindices. Each index has less than {@code MAX_ENTRIES} words. The original
@@ -214,30 +332,30 @@ public class IndexWriter {
 	 * 
 	 * @throws Exception
 	 */
-	private void makeSubIndices(PerstRoot perstRoot) throws Exception {
+	private void makeSubIndices(PerstRoot perstRoot, boolean separatepageindex) throws Exception {
 		Logger.normal(this, "Generating index...");
 
 		indices = new Vector<String>();
 		match = 1;
 
 		for (String hex : HEX)
-			generateSubIndex(perstRoot, hex);
+			generateSubIndex(perstRoot, hex, separatepageindex);
 	}
 
-	private void generateSubIndex(PerstRoot perstRoot, String prefix) throws Exception {
+	private void generateSubIndex(PerstRoot perstRoot, String prefix, boolean separatepageindex) throws Exception {
 		if (logMINOR)
 			Logger.minor(this, "Generating subindex for (" + prefix + ")");
 		if (prefix.length() > match)
 			match = prefix.length();
 
-		if (generateXML(perstRoot, prefix))
+		if (generateXML(perstRoot, prefix, separatepageindex ))
 			return;
 		
 		if (logMINOR)
 			Logger.minor(this, "Too big subindex for (" + prefix + ")");
 		
 		for (String hex : HEX)
-			generateSubIndex(perstRoot, prefix + hex);
+			generateSubIndex(perstRoot, prefix + hex, separatepageindex );
 	}
 
 	/**
@@ -249,7 +367,7 @@ public class IndexWriter {
 	 * @return successful
 	 * @throws IOException
 	 */
-	private boolean generateXML(PerstRoot perstRoot, String prefix) throws IOException {
+	private boolean generateXML(PerstRoot perstRoot, String prefix, boolean separatepageindex ) throws IOException {
 		final Config config = perstRoot.getConfig();
 		final long MAX_SIZE = config.getIndexSubindexMaxSize();
 		final int MAX_ENTRIES = config.getIndexMaxEntries();
@@ -344,7 +462,7 @@ public class IndexWriter {
 							estimateSize += 13;
 							estimateSize += positionList.length();
 						
-							if (!fileid.contains(page.getId())) {
+							if (!separatepageindex && !fileid.contains(page.getId())) { // Add pages to index
 								fileid.add(page.getId());
 
 								Element fileElement = xmlDoc.createElementNS(null, "file");
@@ -371,7 +489,8 @@ public class IndexWriter {
 
 			rootElement.appendChild(entriesElement);
 			rootElement.appendChild(headerElement);
-			rootElement.appendChild(filesElement);
+			if(!separatepageindex)
+				rootElement.appendChild(filesElement);
 			rootElement.appendChild(keywordsElement);
 
 			/* Serialization */
@@ -433,7 +552,7 @@ public class IndexWriter {
 		
 		for (int i = 0; i < benchmark; i++) {
 			long startTime = System.currentTimeMillis();
-			writer.makeIndex(root);
+			writer.makeIndex(root, "", true);
 			long endTime = System.currentTimeMillis();
 			long memFree = Runtime.getRuntime().freeMemory();
 			long memTotal = Runtime.getRuntime().totalMemory();

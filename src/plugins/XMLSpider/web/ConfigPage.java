@@ -138,7 +138,6 @@ class ConfigPage implements WebPage {
 		        "Bad Listed Extensions", "Comma seprated list of banned URI suffix.", // 
 		        "badListedExtensions", //
 		        config.getBadlistedExtensions());
-		addHTML(spiderConfig, "Blar Blar Blar", new HTMLNode("a", "href", "?Blarla", "bla"));
 		
 		configForm.addChild("div", "class", "configprefix", "Index Writer Options");
 		

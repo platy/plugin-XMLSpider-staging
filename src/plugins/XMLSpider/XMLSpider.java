@@ -294,14 +294,28 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless, FredPluginVe
 	}
 
 	public synchronized void scheduleMakeIndex() {
+		scheduleMakeIndex("", "false", "xml");
+	}
+	
+	public synchronized void scheduleMakeIndex(String indexdir, String separatepageindex, String indexformat) {
 		if (writeIndexScheduled || writingIndex)
 			return;
 
-		callbackExecutor.execute(new MakeIndexCallback());
+		callbackExecutor.execute(new MakeIndexCallback(indexdir, separatepageindex, indexformat));
 		writeIndexScheduled = true;
 	}
 
 	protected class MakeIndexCallback implements Runnable {
+		String indexdir;
+		String separatepageindex;
+		String indexformat;
+		
+		public MakeIndexCallback(String indexdir, String separatepageindex, String indexformat){
+			this.indexdir = indexdir;
+			this.separatepageindex = separatepageindex;
+			this.indexformat = indexformat;
+		}
+		
 		public void run() {
 			try {
 				synchronized (this) {
@@ -309,7 +323,8 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless, FredPluginVe
 				}
 
 				db.gc();
-				indexWriter.makeIndex(getRoot());
+				if(indexformat.equals("xml"))
+					indexWriter.makeIndex(getRoot(), indexdir, "true".equals(separatepageindex));
 
 				synchronized (this) {
 					writingIndex = false;
