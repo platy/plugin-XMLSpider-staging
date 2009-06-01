@@ -17,6 +17,12 @@ public class Page extends Persistent implements Comparable<Page> {
 	protected String pageTitle;
 	/** Status */
 	protected Status status;
+	
+	/** File size */
+	protected long filesize;
+	/** Mime type */
+	protected String mimetype;
+
 	/** Last Change Time */
 	protected long lastChange;
 	/** Comment, for debugging */
@@ -33,6 +39,8 @@ public class Page extends Persistent implements Comparable<Page> {
 		this.status = Status.QUEUED;
 		this.lastChange = System.currentTimeMillis();
 		
+		this.mimetype = "";
+        this.filesize = -1;
 		storage.makePersistent(this);
 	}
 	
@@ -72,6 +80,26 @@ public class Page extends Persistent implements Comparable<Page> {
 
 	public String getPageTitle() {
 		return pageTitle;
+	}
+	
+	public void setFileSize(long filesize) {
+		preModify();
+		this.filesize = filesize;
+		postModify();
+	}
+	
+	public long getFileSize() {
+		return filesize;
+	}
+    
+	public void setMimeType(String mimetype) {
+		preModify();
+		this.mimetype = mimetype;
+		postModify();
+	}
+    
+	public String getMimeType() {
+		return mimetype;
 	}
 
 	public synchronized TermPosition getTermPosition(Term term, boolean create) {

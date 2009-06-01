@@ -92,7 +92,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless, FredPluginVe
 	 */
 	protected Set<String> allowedMIMETypes;	
 
-	static int version = 37;
+	static int version = 38;
 	public static final String pluginName = "XML spider " + version;
 
 	public String getVersion() {
@@ -415,6 +415,10 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless, FredPluginVe
 		ClientMetadata cm = result.getMetadata();
 		Bucket data = result.asBucket();
 		String mimeType = cm.getMIMEType();
+		
+		// Set info on page
+		page.setFileSize(data.size());
+		page.setMimeType(mimeType);
 
 		boolean dbTransactionEnded = false;
 		db.beginThreadTransaction(Storage.EXCLUSIVE_TRANSACTION);
