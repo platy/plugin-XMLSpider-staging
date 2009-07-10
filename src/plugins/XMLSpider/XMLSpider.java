@@ -74,13 +74,15 @@ import freenet.support.io.NullBucketFactory;
  *  @author swati goyal
  *  
  */
-public class XMLSpider implements FredPlugin, FredPluginThreadless, FredPluginVersioned, FredPluginRealVersioned, FredPluginL10n, USKCallback, RequestClient {
+public class XMLSpider implements FredPlugin, FredPluginThreadless,
+		FredPluginVersioned, FredPluginRealVersioned, FredPluginL10n, USKCallback, RequestClient {
 	public Config getConfig() {
 		return getRoot().getConfig();
 	}
 
 	// Set config asynchronously
 	public void setConfig(Config config) {
+		getRoot().setConfig(config); // hack -- may cause race condition. but this is more user friendly
 		callbackExecutor.execute(new SetConfigCallback(config));
 	}
 
@@ -92,11 +94,12 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless, FredPluginVe
 	 */
 	protected Set<String> allowedMIMETypes;	
 
-	static int version = 38;
+	static int dbVersion = 37;
+	static int version = 37;
 	public static final String pluginName = "XML spider " + version;
 
 	public String getVersion() {
-		return version + " r" + Version.getSvnRevision();
+		return version + "(" + dbVersion + ") r" + Version.getSvnRevision();
 	}
 	
 	public long getRealVersion() {
@@ -351,11 +354,8 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless, FredPluginVe
 
 		public void run() {
 			synchronized (getRoot()) {
-				Config oldConfig = getRoot().getConfig();
 				getRoot().setConfig(config);
-				
-				if (oldConfig.getMaxParallelRequests() < config.getMaxParallelRequests())
-					startSomeRequests();
+				startSomeRequests();
 			}
 		}
 	}
@@ -740,7 +740,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless, FredPluginVe
 		db.setProperty("perst.string.encoding", "UTF-8");
 		db.setProperty("perst.concurrent.iterator", true);
 
-		db.open("XMLSpider-" + version + ".dbs");
+		db.open("XMLSpider-" + dbVersion + ".dbs");
 
 		PerstRoot root = (PerstRoot) db.getRoot();
 		if (root == null)
