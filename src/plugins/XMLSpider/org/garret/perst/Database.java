@@ -694,10 +694,10 @@ public class Database {
     /**
      * Parse and execute full text search query
      * @param query text of the query
-     * @oaram language language if the query
+     * @param language language if the query
      * @param maxResults maximal amount of selected documents
      * @param timeLimit limit for query execution time
-     * @erturn result of query execution ordered by rank or null in case of empty or incorrect query
+     * @return result of query execution ordered by rank or null in case of empty or incorrect query
      */
     public FullTextSearchResult search(String query, String language, int maxResults, int timeLimit) {
         if (multithreaded) { 
@@ -711,7 +711,7 @@ public class Database {
      * @param query prepared query
      * @param maxResults maximal amount of selected documents
      * @param timeLimit limit for query execution time
-     * @erturn result of query execution ordered by rank or null in case of empty or incorrect query
+     * @return result of query execution ordered by rank or null in case of empty or incorrect query
      */    
     public FullTextSearchResult search(FullTextQuery query, int maxResults, int timeLimit) {
         if (multithreaded) { 

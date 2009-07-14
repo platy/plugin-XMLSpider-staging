@@ -3,6 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.XMLSpider;
 
+import freenet.pluginmanager.PluginNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -60,6 +61,7 @@ import freenet.support.Logger;
 import freenet.support.api.Bucket;
 import freenet.support.io.NativeThread;
 import freenet.support.io.NullBucketFactory;
+import java.util.concurrent.TimeoutException;
 
 /**
  * XMLSpider. Produces xml index for searching words. 
@@ -71,6 +73,9 @@ import freenet.support.io.NullBucketFactory;
  */
 public class XMLSpider implements FredPlugin, FredPluginThreadless,
 		FredPluginVersioned, FredPluginRealVersioned, FredPluginL10n, USKCallback, RequestClient {
+
+	RemoteLibrary library;
+
 	public Config getConfig() {
 		return getRoot().getConfig();
 	}
@@ -89,7 +94,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 	 */
 	protected Set<String> allowedMIMETypes;	
 
-	static int dbVersion = 37;
+	static int dbVersion = 40;
 	static int version = 37;
 	public static final String pluginName = "XML spider " + version;
 
@@ -195,7 +200,11 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 		}
 
 		for (ClientGetter g : toStart) {
-			g.start(null, clientContext);
+			try{
+				g.start(null, clientContext);
+			}catch(FetchException e){
+
+			}
 			Logger.minor(this, g + " started");
 		}
 	}
@@ -222,6 +231,8 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 			callbackExecutor.execute(new OnSuccessCallback(result, state, page));
 			Logger.minor(this, "Queued OnSuccess: " + page + " (q:" + callbackExecutor.getQueue().size() + ")");
 		}
+
+		public void onMajorProgress(ObjectContainer oc){}
 
 		public String toString() {
 			return super.toString() + ":" + page;
@@ -588,6 +599,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 			queueURI(initialURIs[i], "bookmark", false);
 
 		callbackExecutor.execute(new StartSomeRequestsCallback());
+		library = new RemoteLibrary(pr);
 	}
 
 	private WebInterface webInterface;
