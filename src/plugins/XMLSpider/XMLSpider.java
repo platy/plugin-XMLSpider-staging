@@ -195,12 +195,8 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 		}
 
 		for (ClientGetter g : toStart) {
-			try {
-				g.start(null, clientContext);
-				Logger.minor(this, g + " started");
-			} catch (FetchException e) {
-				g.getClientCallback().onFailure(e, g, null);
-			}
+			g.start(null, clientContext);
+			Logger.minor(this, g + " started");
 		}
 	}
 
