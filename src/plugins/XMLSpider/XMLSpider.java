@@ -3,6 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.XMLSpider;
 
+import plugins.Library.fcp.RemoteLibrary;
 import freenet.pluginmanager.PluginNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;

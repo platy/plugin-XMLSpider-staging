@@ -1,5 +1,5 @@
 
-package plugins.XMLSpider;
+package plugins.Library.fcp;
 
 import freenet.pluginmanager.FredPluginTalker;
 import freenet.pluginmanager.PluginNotFoundException;
