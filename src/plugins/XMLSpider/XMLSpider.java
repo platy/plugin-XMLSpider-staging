@@ -4,7 +4,6 @@
 package plugins.XMLSpider;
 
 import plugins.Library.fcp.RemoteLibrary;
-import freenet.pluginmanager.PluginNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -62,7 +61,6 @@ import freenet.support.Logger;
 import freenet.support.api.Bucket;
 import freenet.support.io.NativeThread;
 import freenet.support.io.NullBucketFactory;
-import java.util.concurrent.TimeoutException;
 
 /**
  * XMLSpider. Produces xml index for searching words. 
@@ -95,7 +93,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 	 */
 	protected Set<String> allowedMIMETypes;	
 
-	static int dbVersion = 40;
+	static int dbVersion = 41;
 	static int version = 37;
 	public static final String pluginName = "XML spider " + version;
 
@@ -415,8 +413,8 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 		String mimeType = cm.getMIMEType();
 		
 		// Set info on page
-		page.setFileSize(data.size());
-		page.setMimeType(mimeType);
+		page.addMeta("size", Long.toString(data.size()));
+		page.addMeta("mime", mimeType);
 
 		boolean dbTransactionEnded = false;
 		db.beginThreadTransaction(Storage.EXCLUSIVE_TRANSACTION);
@@ -618,7 +616,6 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 
 		PageCallBack(Page page) {
 			this.page = page; 
-			page.clearTermPosition();
 		}
 
 		public void foundURI(FreenetURI uri){
@@ -666,7 +663,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 					if(type == null)
 						addWord(word, lastPosition + i);
 					else
-						addWord(word, -1 * (i + 1));
+						addWord(word, Integer.MIN_VALUE + i); // Put title words in the right order starting at MIN_VALUE
 				}
 				catch (Exception e){}
 			}
@@ -683,8 +680,9 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 			if (word.length() < 3)
 				return;
 			Term term = getTermByWord(word, true);
-			TermPosition termPos = page.getTermPosition(term, true);
+			TermPosition termPos = term.getTermPosition(page, true);
 			termPos.addPositions(position);
+			page.termCountIncrement();
 		}
 	}
 

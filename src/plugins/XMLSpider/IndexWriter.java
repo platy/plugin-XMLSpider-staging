@@ -38,6 +38,9 @@ import plugins.XMLSpider.org.garret.perst.Storage;
 import plugins.XMLSpider.org.garret.perst.StorageFactory;
 import freenet.support.Logger;
 import freenet.support.io.Closer;
+import java.util.Map;
+import java.util.Map.Entry;
+import plugins.XMLSpider.org.garret.perst.PersistentString;
 
 /**
  * Write index to disk file
@@ -178,15 +181,17 @@ public class IndexWriter {
 				//the subindex element key will contain the bits used for matching in that subindex
 				keywordsElement.appendChild(subIndexElement);
 			}
-			
-			/* Specify whether index has separated page index */
-			Element pagesElement = xmlDoc.createElementNS(null, "pages");
-			pagesElement.setAttributeNS(null, "separateindex", separatepageindex ? "true" : "false");
 
 
 			rootElement.appendChild(prefixElement);
 			rootElement.appendChild(headerElement);
-			rootElement.appendChild(pagesElement);
+			/* Specify whether index has separated page index */
+			if(separatepageindex){
+				Element pagesElement = xmlDoc.createElementNS(null, "pages");
+				pagesElement.setAttributeNS(null, "separateindex", separatepageindex ? "true" : "false");
+				rootElement.appendChild(pagesElement);
+			}
+
 			rootElement.appendChild(keywordsElement);
 
 			/* Serialization */
@@ -425,14 +430,14 @@ public class IndexWriter {
 				estimateSize += 12;
 				estimateSize += term.getWord().length();
 
-				Set<Page> pages = term.getPages();
+				Map<Page, TermPosition> pages = term.getPositions();
 				
 				if ((count > 1 && (estimateSize + pages.size() * 13) > MAX_SIZE) || //
 						(count > MAX_ENTRIES))
 					return false;
 
-				for (Page page : pages) {
-					TermPosition termPos = page.getTermPosition(term, false);
+				for (Page page : pages.keySet()) {
+					TermPosition termPos = pages.get(page);
 					if (termPos == null)
 						continue;
 					
@@ -469,7 +474,10 @@ public class IndexWriter {
 								fileElement.setAttributeNS(null, "id", Long.toString(page.getId()));
 								fileElement.setAttributeNS(null, "key", page.getURI());
 								fileElement.setAttributeNS(null, "title", page.getPageTitle() != null ? page
-								        .getPageTitle() : page.getURI());
+								        .getPageTitle() : "");
+								for (Entry<String, PersistentString> m : page.getMeta()) {
+									fileElement.setAttributeNS(null, m.getKey(), m.getValue().toString());
+								}
 								
 								filesElement.appendChild(fileElement);
 								

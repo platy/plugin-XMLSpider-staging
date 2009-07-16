@@ -3,9 +3,12 @@
  */
 package plugins.XMLSpider.db;
 
+import java.util.Map.Entry;
+import java.util.Set;
 import plugins.XMLSpider.org.garret.perst.FieldIndex;
 import plugins.XMLSpider.org.garret.perst.IPersistentMap;
 import plugins.XMLSpider.org.garret.perst.Persistent;
+import plugins.XMLSpider.org.garret.perst.PersistentString;
 import plugins.XMLSpider.org.garret.perst.Storage;
 
 public class Page extends Persistent implements Comparable<Page> {
@@ -18,17 +21,15 @@ public class Page extends Persistent implements Comparable<Page> {
 	/** Status */
 	protected Status status;
 	
-	/** File size */
-	protected long filesize;
-	/** Mime type */
-	protected String mimetype;
+	/** Number of terms in this page */
+	private int termCount;
+	/** Arbitrary meta */
+	protected IPersistentMap<String, PersistentString> meta;
 
 	/** Last Change Time */
 	protected long lastChange;
 	/** Comment, for debugging */
 	protected String comment;
-	/** term.md5 -> TermPosition */
-	protected IPersistentMap<String, TermPosition> termPosMap;
 
 	public Page() {
 	}
@@ -38,9 +39,9 @@ public class Page extends Persistent implements Comparable<Page> {
 		this.comment = comment;
 		this.status = Status.QUEUED;
 		this.lastChange = System.currentTimeMillis();
-		
-		this.mimetype = "";
-        this.filesize = -1;
+
+		this.termCount = 0;
+		meta = storage.<String, PersistentString> createMap(String.class);
 		storage.makePersistent(this);
 	}
 	
@@ -82,45 +83,18 @@ public class Page extends Persistent implements Comparable<Page> {
 		return pageTitle;
 	}
 	
-	public void setFileSize(long filesize) {
+	public void addMeta(String name, String value) {
 		preModify();
-		this.filesize = filesize;
+		meta.put(name, new PersistentString(value));
 		postModify();
 	}
-	
-	public long getFileSize() {
-		return filesize;
-	}
-    
-	public void setMimeType(String mimetype) {
-		preModify();
-		this.mimetype = mimetype;
-		postModify();
-	}
-    
-	public String getMimeType() {
-		return mimetype;
-	}
 
-	public synchronized TermPosition getTermPosition(Term term, boolean create) {
-		if (termPosMap == null) {
-			termPosMap = getStorage().createMap(String.class);
-			modify();
-		}
-
-		TermPosition tp = termPosMap.get(term.md5);
-		if (tp == null && create) {
-			tp = new TermPosition(getStorage());
-			termPosMap.put(term.md5, tp);
-			term.pageSet.add(this);
-		}
-
-		return tp;
+	public Set<Entry<String, PersistentString>> getMeta(){
+		return meta.entrySet();
 	}
 	
-	public synchronized void clearTermPosition() {
-		termPosMap = null;
-		modify();
+	public String getMeta(String name) {
+		return meta.get(name).toString();
 	}
 	
 	@Override
@@ -138,6 +112,10 @@ public class Page extends Persistent implements Comparable<Page> {
 			return false;
 
 		return id == ((Page) obj).id;
+	}
+
+	public void termCountIncrement() {
+		termCount++;
 	}
 
 	@Override

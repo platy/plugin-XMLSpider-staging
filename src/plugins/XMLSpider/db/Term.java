@@ -6,9 +6,10 @@ package plugins.XMLSpider.db;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Map;
 import java.util.Set;
 
-import plugins.XMLSpider.org.garret.perst.IPersistentSet;
+import plugins.XMLSpider.org.garret.perst.IPersistentMap;
 import plugins.XMLSpider.org.garret.perst.Persistent;
 import plugins.XMLSpider.org.garret.perst.Storage;
 
@@ -19,12 +20,12 @@ public class Term extends Persistent {
 	String word;
 	
 	/** Pages containing this Term */
-	IPersistentSet<Page> pageSet;
+	IPersistentMap<Page, TermPosition> pageMap;
 
 	public Term(String word, Storage storage) {
 		this.word = word;
 		md5 = MD5(word);
-		pageSet = storage.<Page> createScalableSet();
+		pageMap = storage.<Page, TermPosition> createMap(Page.class);
 		
 		storage.makePersistent(this);
 	}
@@ -32,16 +33,29 @@ public class Term extends Persistent {
 	public Term() {
 	}
 	
-	public boolean addPage(Page page) {
-		return pageSet.add(page);
+	public void addPage(Page page, TermPosition termPosition) {
+		pageMap.put(page, termPosition);
 	}
 
-	public boolean removePage(Page page) {
-		return pageSet.remove(page);
+	public void removePage(Page page) {
+		pageMap.remove(page);
 	}
 
 	public Set<Page> getPages() {
-		return pageSet;
+		return pageMap.keySet();
+	}
+
+	public Map <Page, TermPosition> getPositions(){
+		return pageMap;
+	}
+
+	public synchronized TermPosition getTermPosition(Page page, boolean create) {
+		TermPosition tp = pageMap.get(page);
+		if (tp == null && create) {
+			tp = new TermPosition(getStorage());
+			pageMap.put(page, tp);
+		}
+		return tp;
 	}
 
 	public String getWord() {
