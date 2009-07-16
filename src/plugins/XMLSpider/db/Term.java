@@ -20,12 +20,12 @@ public class Term extends Persistent {
 	String word;
 	
 	/** Pages containing this Term */
-	IPersistentMap<Page, TermPosition> pageMap;
+	IPersistentMap<Long, TermPosition> pageMap;
 
 	public Term(String word, Storage storage) {
 		this.word = word;
 		md5 = MD5(word);
-		pageMap = storage.<Page, TermPosition> createMap(Page.class);
+		pageMap = storage.<Long, TermPosition> createMap(Long.class);
 		
 		storage.makePersistent(this);
 	}
@@ -33,7 +33,7 @@ public class Term extends Persistent {
 	public Term() {
 	}
 	
-	public void addPage(Page page, TermPosition termPosition) {
+	public void addPage(Long page, TermPosition termPosition) {
 		pageMap.put(page, termPosition);
 	}
 
@@ -41,15 +41,15 @@ public class Term extends Persistent {
 		pageMap.remove(page);
 	}
 
-	public Set<Page> getPages() {
+	public Set<Long> getPages() {
 		return pageMap.keySet();
 	}
 
-	public Map <Page, TermPosition> getPositions(){
+	public Map <Long, TermPosition> getPositions(){
 		return pageMap;
 	}
 
-	public synchronized TermPosition getTermPosition(Page page, boolean create) {
+	public synchronized TermPosition getTermPosition(Long page, boolean create) {
 		TermPosition tp = pageMap.get(page);
 		if (tp == null && create) {
 			tp = new TermPosition(getStorage());

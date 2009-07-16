@@ -413,8 +413,10 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 		String mimeType = cm.getMIMEType();
 		
 		// Set info on page
-		page.addMeta("size", Long.toString(data.size()));
-		page.addMeta("mime", mimeType);
+		page.setMeta(new String[]{
+			"size=" + Long.toString(data.size()),
+			"mime=" + mimeType
+		});
 
 		boolean dbTransactionEnded = false;
 		db.beginThreadTransaction(Storage.EXCLUSIVE_TRANSACTION);
@@ -681,7 +683,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 			if (word.length() < 3)
 				return;
 			Term term = getTermByWord(word, true);
-			TermPosition termPos = term.getTermPosition(page, true);
+			TermPosition termPos = term.getTermPosition(page.getId(), true);
 			termPos.addPositions(position);
 			page.termCountIncrement();
 		}

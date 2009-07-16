@@ -3,12 +3,8 @@
  */
 package plugins.XMLSpider.db;
 
-import java.util.Map.Entry;
-import java.util.Set;
 import plugins.XMLSpider.org.garret.perst.FieldIndex;
-import plugins.XMLSpider.org.garret.perst.IPersistentMap;
 import plugins.XMLSpider.org.garret.perst.Persistent;
-import plugins.XMLSpider.org.garret.perst.PersistentString;
 import plugins.XMLSpider.org.garret.perst.Storage;
 
 public class Page extends Persistent implements Comparable<Page> {
@@ -26,7 +22,7 @@ public class Page extends Persistent implements Comparable<Page> {
 	/** Number of terms in this page */
 	private int termCount;
 	/** Arbitrary meta */
-	protected IPersistentMap<String, PersistentString> meta;
+	protected String[] meta;
 
 	/** Last Change Time */
 	protected long lastChange;
@@ -44,8 +40,12 @@ public class Page extends Persistent implements Comparable<Page> {
 		this.lastChange = System.currentTimeMillis();
 
 		this.termCount = 0;
-		meta = storage.<String, PersistentString> createMap(String.class);
+		meta = null;
 		storage.makePersistent(this);
+	}
+
+	public long getPageCount() {
+		return termCount;
 	}
 
 	public void incrementRetries() {
@@ -90,18 +90,14 @@ public class Page extends Persistent implements Comparable<Page> {
 		return pageTitle;
 	}
 	
-	public void addMeta(String name, String value) {
+	public void setMeta(String[] meta) {
 		preModify();
-		meta.put(name, new PersistentString(value));
+		this.meta = meta;
 		postModify();
 	}
 
-	public Set<Entry<String, PersistentString>> getMeta(){
-		return meta.entrySet();
-	}
-	
-	public String getMeta(String name) {
-		return meta.get(name).toString();
+	public String[] getMeta(){
+		return meta;
 	}
 	
 	@Override

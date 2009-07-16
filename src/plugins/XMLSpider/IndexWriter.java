@@ -39,8 +39,6 @@ import plugins.XMLSpider.org.garret.perst.StorageFactory;
 import freenet.support.Logger;
 import freenet.support.io.Closer;
 import java.util.Map;
-import java.util.Map.Entry;
-import plugins.XMLSpider.org.garret.perst.PersistentString;
 
 /**
  * Write index to disk file
@@ -431,13 +429,13 @@ public class IndexWriter {
 				estimateSize += 12;
 				estimateSize += term.getWord().length();
 
-				Map<Page, TermPosition> pages = term.getPositions();
+				Map<Long, TermPosition> pages = term.getPositions();
 				
 				if ((count > 1 && (estimateSize + pages.size() * 13) > MAX_SIZE) || //
 						(count > MAX_ENTRIES))
 					return false;
 
-				for (Page page : pages.keySet()) {
+				for (Long page : pages.keySet()) {
 					TermPosition termPos = pages.get(page);
 					if (termPos == null)
 						continue;
@@ -450,7 +448,7 @@ public class IndexWriter {
 							 * the files mentioned in the entire subindex
 							 */
 							Element uriElement = xmlDoc.createElementNS(null, "file");
-							uriElement.setAttributeNS(null, "id", Long.toString(page.getId()));
+							uriElement.setAttributeNS(null, "id", Long.toString(page));
 
 							/* Position by position */
 							int[] positions = termPos.positions;
@@ -468,23 +466,26 @@ public class IndexWriter {
 							estimateSize += 13;
 							estimateSize += positionList.length();
 						
-							if (!separatepageindex && !fileid.contains(page.getId())) { // Add pages to index
-								fileid.add(page.getId());
+							if (!separatepageindex && !fileid.contains(page)) { // Add pages to index
+								Page actualpage = perstRoot.getPageById(page.longValue());
+								fileid.add(page);
 
 								Element fileElement = xmlDoc.createElementNS(null, "file");
-								fileElement.setAttributeNS(null, "id", Long.toString(page.getId()));
-								fileElement.setAttributeNS(null, "key", page.getURI());
-								fileElement.setAttributeNS(null, "title", page.getPageTitle() != null ? page
+								fileElement.setAttributeNS(null, "id", Long.toString(page));
+								fileElement.setAttributeNS(null, "key", actualpage.getURI());
+								fileElement.setAttributeNS(null, "title", actualpage.getPageTitle() != null ? actualpage
 								        .getPageTitle() : "");
-								for (Entry<String, PersistentString> m : page.getMeta()) {
-									fileElement.setAttributeNS(null, m.getKey(), m.getValue().toString());
+								for (String m : actualpage.getMeta()) {
+									String[] s = m.split("=");
+									fileElement.setAttributeNS(null, s[0], s[1]);
 								}
+								fileElement.setAttributeNS(null, "wordCount", Long.toString(actualpage.getPageCount()));
 								
 								filesElement.appendChild(fileElement);
 								
 								estimateSize += 15;
 								estimateSize += filesElement.getAttributeNS(null, "id").length();
-								estimateSize += filesElement.getAttributeNS(null, "key").length();
+								estimateSize += filesElement.getAttributeNS(null, "key").length();	// FIXME estimate is wrong now because of meta and term count
 								estimateSize += filesElement.getAttributeNS(null, "title").length();
 							}
 						}
