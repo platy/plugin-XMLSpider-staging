@@ -336,6 +336,7 @@ public class IndexWriter {
 	 * the words
 	 * 
 	 * @throws Exception
+	 * TODO start depth and resume
 	 */
 	private void makeSubIndices(PerstRoot perstRoot, boolean separatepageindex) throws Exception {
 		Logger.normal(this, "Generating index...");

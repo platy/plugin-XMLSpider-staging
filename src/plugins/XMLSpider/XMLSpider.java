@@ -501,6 +501,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 				} else {
 					// requeue at back
 					page.setStatus(Status.QUEUED);
+					page.incrementRetries();
 				}
 			}
 			db.endThreadTransaction();

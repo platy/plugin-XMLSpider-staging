@@ -20,6 +20,8 @@ public class Page extends Persistent implements Comparable<Page> {
 	protected String pageTitle;
 	/** Status */
 	protected Status status;
+	/** Number of retries at fetching this page */
+	private int retries;
 	
 	/** Number of terms in this page */
 	private int termCount;
@@ -38,11 +40,16 @@ public class Page extends Persistent implements Comparable<Page> {
 		this.uri = uri;
 		this.comment = comment;
 		this.status = Status.QUEUED;
+		this.retries = 0;
 		this.lastChange = System.currentTimeMillis();
 
 		this.termCount = 0;
 		meta = storage.<String, PersistentString> createMap(String.class);
 		storage.makePersistent(this);
+	}
+
+	public void incrementRetries() {
+		retries++;
 	}
 	
 	public synchronized void setStatus(Status status) {

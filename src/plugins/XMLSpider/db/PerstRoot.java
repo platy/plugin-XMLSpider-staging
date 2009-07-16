@@ -33,7 +33,7 @@ public class PerstRoot extends Persistent {
 
 		root.idPage = storage.createFieldIndex(Page.class, "id", true);
 		root.uriPage = storage.createFieldIndex(Page.class, "uri", true);
-		root.queuedPages = storage.createFieldIndex(Page.class, "lastChange", false);
+		root.queuedPages = storage.createFieldIndex(Page.class, "retries", false); // Queued pages sorted by retries and change date
 		root.failedPages = storage.createFieldIndex(Page.class, "lastChange", false);
 		root.succeededPages = storage.createFieldIndex(Page.class, "lastChange", false);
 
