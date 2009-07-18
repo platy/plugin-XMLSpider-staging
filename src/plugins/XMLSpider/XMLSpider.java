@@ -320,6 +320,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 			synchronized(this){
 				if(!writeIndexScheduled)
 					return;
+				writeIndexScheduled=false;
 			}
 			try {
 				Logger.normal(this, "Making index");

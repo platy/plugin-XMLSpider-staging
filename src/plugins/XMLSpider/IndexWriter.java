@@ -73,6 +73,7 @@ public class IndexWriter {
 
 	public synchronized void makeIndex(PerstRoot perstRoot, String indexdir_, boolean separatepageindex) throws Exception {
 		logMINOR = Logger.shouldLog(Logger.MINOR, this);
+		pause = false;
 		try {
 			if(indexdir_==null|| indexdir_.equals(""))
 				readConfig(perstRoot);
@@ -104,6 +105,7 @@ public class IndexWriter {
 			}catch(InterruptedException i){
 				Logger.normal(this, "Index writing paused on user request, writing resume file");
 				writeResume(subindexno);
+				pause = false;
 				throw i;
 			}
 			makeMainIndex();
