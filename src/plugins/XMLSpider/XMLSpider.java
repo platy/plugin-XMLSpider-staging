@@ -75,8 +75,24 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 
 	RemoteLibrary library;
 
+	public synchronized boolean cancelWrite() {
+		if(writingIndex)
+			return false;
+		writeIndexScheduled = false;
+		return true;
+	}
+
 	public Config getConfig() {
 		return getRoot().getConfig();
+	}
+
+	public synchronized boolean pauseWrite() {
+		if(!writingIndex)
+			return false;
+		indexWriter.pause();
+		writingIndex = false;
+		writeIndexScheduled = false;
+		return true;
 	}
 
 	// Set config asynchronously
@@ -93,7 +109,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 	 */
 	protected Set<String> allowedMIMETypes;	
 
-	static int dbVersion = 41;
+	static int dbVersion = 42;
 	static int version = 37;
 	public static final String pluginName = "XML spider " + version;
 
@@ -301,7 +317,12 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 		}
 		
 		public void run() {
+			synchronized(this){
+				if(!writeIndexScheduled)
+					return;
+			}
 			try {
+				Logger.normal(this, "Making index");
 				synchronized (this) {
 					writingIndex = true;
 				}
@@ -319,6 +340,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 			} finally {
 				synchronized (this) {
 					writingIndex = false;
+					writeIndexScheduled = false;
 					notifyAll();
 				}
 			}
@@ -431,8 +453,8 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 			Logger.minor(this, "Successful: " + uri + " : " + page.getId());
 
 			try {
-			ContentFilter.filter(data, new NullBucketFactory(), mimeType, uri.toURI("http://127.0.0.1:8888/"),
-					pageCallBack);
+				ContentFilter.filter(data, new NullBucketFactory(), mimeType,
+						uri.toURI("http://127.0.0.1:8888/"), pageCallBack);
 			} catch (UnsafeContentTypeException e) {
 				// wrong mime type
 				page.setStatus(Status.SUCCEEDED);

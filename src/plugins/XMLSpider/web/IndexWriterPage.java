@@ -16,10 +16,8 @@ import plugins.XMLSpider.db.PerstRoot;
 import plugins.XMLSpider.db.Status;
 import freenet.clients.http.InfoboxNode;
 import freenet.clients.http.PageMaker;
-import freenet.keys.FreenetURI;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.HTMLNode;
-import freenet.support.Logger;
 import freenet.support.api.HTTPRequest;
 
 class IndexWriterPage implements WebPage {
@@ -63,6 +61,19 @@ class IndexWriterPage implements WebPage {
 					addChild("#", "Index will start create soon.");
 			}
 		}
+		if (request.isPartSet("pausewrite")) {
+			if(xmlSpider.pauseWrite())
+				pageMaker.getInfobox("infobox infobox-success", "Writing task paused", contentNode)
+						.addChild("#", "Schedule writing to the same directory to continue");
+			else
+				pageMaker.getInfobox("infobox infobox-error", "Write task could not be paused", contentNode);
+		}
+		if (request.isPartSet("cancelwrite")) {
+			if(xmlSpider.cancelWrite())
+				pageMaker.getInfobox("infobox infobox-success", "Writing task cancelled", contentNode);
+			else
+				pageMaker.getInfobox("infobox infobox-error", "Write task could not be cancelled, it has already started", contentNode);
+		}
 	}
 
 	/*
@@ -95,11 +106,21 @@ class IndexWriterPage implements WebPage {
 		statusContent.addChild("br");
 		statusContent.addChild("#", "Index Writer: ");
 		synchronized (this) {
-			if (xmlSpider.isWritingIndex())
+			if (xmlSpider.isWritingIndex()){
 				statusContent.addChild("span", "style", "color: red; font-weight: bold;", "RUNNING");
-			else if (xmlSpider.isWriteIndexScheduled())
+				HTMLNode pauseform = pr.addFormChild(statusContent, "/xmlspider/indexwriter", "pauseform");
+				pauseform.addChild("input", //
+						new String[] { "name", "type", "value" },//
+						new String[] { "pausewrite", "hidden", "pausewrite" });
+				pauseform.addChild("input", new String[]{"type", "value"}, new String[]{"submit", "Pause write"});
+			}else if (xmlSpider.isWriteIndexScheduled()){
 				statusContent.addChild("span", "style", "color: blue; font-weight: bold;", "SCHEDULED");
-			else
+				HTMLNode cancelform = pr.addFormChild(statusContent, "/xmlspider/indexwriter", "cancelform");
+				cancelform.addChild("input", //
+						new String[] { "name", "type", "value" },//
+						new String[] { "cancelwrite", "hidden", "cancelwrite" });
+				cancelform.addChild("input", new String[]{"type", "value"}, new String[]{"submit", "Cancel write"});
+			}else
 				statusContent.addChild("span", "style", "color: green; font-weight: bold;", "IDLE");
 		}
 		statusContent.addChild("br");
