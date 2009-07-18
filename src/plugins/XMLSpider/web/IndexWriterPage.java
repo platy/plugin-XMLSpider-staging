@@ -148,24 +148,10 @@ class IndexWriterPage implements WebPage {
 				new String[] { "name", "type", "value" },//
 		        new String[] { "separatepageindex", "checkbox", "true" });
 		indexForm.addChild("br");
-		indexForm.addChild("#", "include hmm: " );
-		indexForm.addChild("input",
-				new String[] { "name", "type", "value" },//
-		        new String[] { "includelist", "text", "" });
-		indexForm.addChild("br");
-		indexForm.addChild("#", "Exclude hmm: " );
-		indexForm.addChild("input",
-				new String[] { "name", "type", "value" },//
-		        new String[] { "excludelist", "text", "" });
-		indexForm.addChild("br");
 		indexForm.addChild("#", "XML Format " );
 		indexForm.addChild("input",
 				new String[] { "name", "type", "value", "checked" },//
 		        new String[] { "indexformat", "radio", "xml", "checked" });
-		indexForm.addChild("#", ", JSON Format " );
-		indexForm.addChild("input",
-				new String[] { "name", "type", "value" },//
-		        new String[] { "indexformat", "radio", "json" });
 		indexForm.addChild("input", //
 		        new String[] { "name", "type", "value" },//
 		        new String[] { "createIndex", "hidden", "createIndex" });
