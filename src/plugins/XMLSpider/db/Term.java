@@ -20,12 +20,18 @@ public class Term extends Persistent {
 	String word;
 	
 	/** Pages containing this Term */
-	IPersistentMap<Long, TermPosition> pageMap;
+	IPersistentMap<Long, TermPosition> pageMap; // TODO this could be simplified too, maybe an array would be better
+//	long[] pageid;
+//	TermPosition[] positions;	// Would this be better?
+//	int pagecount;
 
 	public Term(String word, Storage storage) {
 		this.word = word;
 		md5 = MD5(word);
 		pageMap = storage.<Long, TermPosition> createMap(Long.class);
+//		pagecount = 0;
+//		pageid = new long[0];
+//		positions = new TermPosition[0];
 		
 		storage.makePersistent(this);
 	}
@@ -35,6 +41,8 @@ public class Term extends Persistent {
 	
 	public void addPage(Long page, TermPosition termPosition) {
 		pageMap.put(page, termPosition);
+//		long[] oldpageid = pageid;
+//		TermPosition[] oldposition = positions;
 	}
 
 	public void removePage(Page page) {
