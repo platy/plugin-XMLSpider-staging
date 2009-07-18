@@ -44,8 +44,8 @@ import java.util.Map;
  * Write index to disk file
  */
 public class IndexWriter {
-	private static final String[] HEX = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e",
-	        "f" }; 
+	private static final String[] HEX = { "0", "1", "2", "3", "4", "5", "6", "7",
+			"8", "9", "a", "b", "c", "d", "e", "f" };
 	
 	//- Writing Index
 	public long tProducedIndex;
@@ -54,34 +54,42 @@ public class IndexWriter {
 	private long time_taken;
 	private boolean logMINOR = Logger.shouldLog(Logger.MINOR, this);
 
+	private String indexdir;
+	private int startDepth;
+	private boolean separatepageindex;
+	private String indexOwnerEmail;
+	private String indexOwner;
+	private String indexTitle;
+	private int subindexno = 0;
+
 	IndexWriter() {
+		indices = null;
 	}
 
-	public synchronized void makeIndex(PerstRoot perstRoot, String indexdir, boolean separatepageindex) throws Exception {
+	public synchronized void makeIndex(PerstRoot perstRoot, String indexdir_, boolean separatepageindex) throws Exception {
 		logMINOR = Logger.shouldLog(Logger.MINOR, this);
 		try {
-			time_taken = System.currentTimeMillis();
-
-			Config config = perstRoot.getConfig();
-
-			if(indexdir.equals("") || indexdir == null)
-				indexdir = config.getIndexDir();
+			if(indexdir_==null|| indexdir_.equals(""))
+				readConfig(perstRoot);
 			else
-				config.setIndexDir(indexdir);
+				indexdir = indexdir_;
+
 			File indexDir = new File(indexdir);
 			if(((!indexDir.exists()) && !indexDir.mkdirs()) || (indexDir.exists() && !indexDir.isDirectory())) {
 				Logger.error(this, "Cannot create index directory: " + indexDir);
 				return;
 			}
-
-			if (logMINOR)
-				Logger.minor(this, "Spider: regenerating index. MAX_SIZE=" + config.getIndexSubindexMaxSize() +
-					", MAX_ENTRIES=" + config.getIndexMaxEntries());
-
+			this.separatepageindex = separatepageindex;
+			
+			
+			readConfig(perstRoot);
+			
 			if(separatepageindex)
 				makePageIndex(perstRoot);
-			makeSubIndices(perstRoot, separatepageindex);
-			makeMainIndex(config, separatepageindex);
+			makeSubIndices(perstRoot);
+			makeMainIndex();
+			
+			indices = null;
 
 			time_taken = System.currentTimeMillis() - time_taken;
 
@@ -93,6 +101,37 @@ public class IndexWriter {
 		} finally {
 		}
 	}
+	
+	private void readConfig(PerstRoot perstRoot){
+
+		Config config = perstRoot.getConfig();
+		
+		if(indexdir == null || indexdir.equals(""))
+			indexdir = config.getIndexDir();
+		else
+			config.setIndexDir(indexdir);
+		
+		time_taken = System.currentTimeMillis();
+		indexOwner = config.getIndexOwner();
+		indexOwnerEmail = config.getIndexOwnerEmail();
+		indexTitle = config.getIndexTitle();
+		indices = null;
+		separatepageindex = config.getSeparatePageIndex();
+		startDepth = config.getStartDepth();
+		subindexno=0;
+		
+		
+
+		if (logMINOR)
+			Logger.normal(this, "Spider: regenerating index. MAX_SIZE=" + config.getIndexSubindexMaxSize() +
+				", MAX_ENTRIES=" + config.getIndexMaxEntries());
+	}
+
+	void terminate() {
+		if (indices != null)
+			writeResume(subindexno);
+	}
+
 
 	/**
 	 * generates the main index file that can be used by librarian for searching in the list of
@@ -103,13 +142,13 @@ public class IndexWriter {
 	 * @throws IOException
 	 * @throws NoSuchAlgorithmException
 	 */
-	private void makeMainIndex(Config config, boolean separatepageindex ) throws IOException, NoSuchAlgorithmException {
+	private void makeMainIndex() throws IOException, NoSuchAlgorithmException {
 		// Produce the main index file.
 		if (logMINOR)
-			Logger.minor(this, "Producing top index...");
+			Logger.normal(this, "Producing top index...");
 
 		//the main index file 
-		File outputFile = new File(config.getIndexDir() + "index.xml");
+		File outputFile = new File(indexdir + "index.xml");
 		// Use a stream so we can explicitly close - minimise number of filehandles used.
 		BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(outputFile));
 		StreamResult resultStream;
@@ -143,22 +182,22 @@ public class IndexWriter {
 
 			/* -> title */
 			Element subHeaderElement = xmlDoc.createElementNS(null, "title");
-			Text subHeaderText = xmlDoc.createTextNode(config.getIndexTitle());
+			Text subHeaderText = xmlDoc.createTextNode(indexTitle);
 
 			subHeaderElement.appendChild(subHeaderText);
 			headerElement.appendChild(subHeaderElement);
 
 			/* -> owner */
 			subHeaderElement = xmlDoc.createElementNS(null, "owner");
-			subHeaderText = xmlDoc.createTextNode(config.getIndexOwner());
+			subHeaderText = xmlDoc.createTextNode(indexOwner);
 
 			subHeaderElement.appendChild(subHeaderText);
 			headerElement.appendChild(subHeaderElement);
 
 			/* -> owner email */
-			if (config.getIndexOwnerEmail() != null) {
+			if (indexOwnerEmail != null) {
 				subHeaderElement = xmlDoc.createElementNS(null, "email");
-				subHeaderText = xmlDoc.createTextNode(config.getIndexOwnerEmail());
+				subHeaderText = xmlDoc.createTextNode(indexOwnerEmail);
 
 				subHeaderElement.appendChild(subHeaderText);
 				headerElement.appendChild(subHeaderElement);
@@ -217,6 +256,7 @@ public class IndexWriter {
 			}
 		} finally {
 			fos.close();
+			indices = null;
 		}
 
 		//The main xml file is generated 
@@ -227,10 +267,8 @@ public class IndexWriter {
 	
 	private void makePageIndex(PerstRoot perstRoot) throws Exception{
 		final Config config = perstRoot.getConfig();
-		final long MAX_SIZE = config.getIndexSubindexMaxSize();
-		final int MAX_ENTRIES = config.getIndexMaxEntries();
 		
-		File outputFile = new File(config.getIndexDir() + "fileindex.xml");
+		File outputFile = new File(indexdir + "fileindex.xml");
 		BufferedOutputStream fos = null;
 
 		int count = 0;
@@ -322,10 +360,6 @@ public class IndexWriter {
 		} finally {
 			Closer.close(fos);
 		}
-		
-
-		if (logMINOR)
-			Logger.minor(this, "Spider: indexes regenerated.");
 	}
 
 	/**
@@ -336,17 +370,25 @@ public class IndexWriter {
 	 * @throws Exception
 	 * TODO start depth and resume
 	 */
-	private void makeSubIndices(PerstRoot perstRoot, boolean separatepageindex) throws Exception {
+	private void makeSubIndices(PerstRoot perstRoot) throws Exception {
 		Logger.normal(this, "Generating index...");
 
-		indices = new Vector<String>();
+		if (indices == null)
+			indices = new Vector<String>();
 		match = 1;
 
-		for (String hex : HEX)
-			generateSubIndex(perstRoot, hex, separatepageindex);
+		
+		// Only allowing 2 start depths at the moment, 3 would seem to large a jump
+		if(startDepth<=1)
+			for (; subindexno<16; subindexno++)
+				generateSubIndex(perstRoot, Integer.toHexString(subindexno));
+		else
+			for(; subindexno<256; subindexno++)
+				generateSubIndex(perstRoot, String.format("%02x", subindexno));
+			
 	}
 
-	private void generateSubIndex(PerstRoot perstRoot, String prefix, boolean separatepageindex) throws Exception {
+	private void generateSubIndex(PerstRoot perstRoot, String prefix) throws Exception {
 		if (logMINOR)
 			Logger.minor(this, "Generating subindex for (" + prefix + ")");
 		if (prefix.length() > match)
@@ -359,7 +401,7 @@ public class IndexWriter {
 			Logger.minor(this, "Too big subindex for (" + prefix + ")");
 		
 		for (String hex : HEX)
-			generateSubIndex(perstRoot, prefix + hex, separatepageindex );
+			generateSubIndex(perstRoot, prefix + hex );
 	}
 
 	/**
@@ -376,7 +418,7 @@ public class IndexWriter {
 		final long MAX_SIZE = config.getIndexSubindexMaxSize();
 		final int MAX_ENTRIES = config.getIndexMaxEntries();
 		
-		File outputFile = new File(config.getIndexDir() + "index_" + prefix + ".xml");
+		File outputFile = new File(indexdir + "index_" + prefix + ".xml");
 		BufferedOutputStream fos = null;
 
 		int count = 0;

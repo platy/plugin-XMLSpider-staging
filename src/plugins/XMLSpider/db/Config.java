@@ -31,6 +31,8 @@ public class Config extends Persistent implements Cloneable {
 	private short requestPriority;
 
 	private boolean debug;
+	private boolean separatePageIndex;
+	private int startDepth;
 
 	public Config() {
 	}
@@ -43,6 +45,9 @@ public class Config extends Persistent implements Cloneable {
 		indexTitle = "XMLSpider index";
 		indexOwner = "Freenet";
 		indexOwnerEmail = "(nil)";
+
+		separatePageIndex = false;
+		startDepth = 1;
 
 		maxShownURIs = 15;
 
@@ -75,6 +80,14 @@ public class Config extends Persistent implements Cloneable {
 			Logger.error(this, "Impossible exception", e);
 			throw new RuntimeException(e);
 		}
+	}
+
+	public boolean getSeparatePageIndex() {
+		return separatePageIndex;
+	}
+
+	public int getStartDepth() {
+		return startDepth;
 	}
 
 	public synchronized void setIndexDir(String indexDir) {
@@ -224,5 +237,13 @@ public class Config extends Persistent implements Cloneable {
 	public synchronized void debug(boolean debug) {
 		assert !isPersistent();
 		this.debug = debug;
+	}
+
+	public void setSeparatePageIndex(boolean parseBoolean) {
+		separatePageIndex = parseBoolean;
+	}
+
+	public void setStartDepth(int parseInt) {
+		startDepth = parseInt;
 	}
 }

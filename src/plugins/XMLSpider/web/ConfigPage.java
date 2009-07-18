@@ -89,6 +89,14 @@ class ConfigPage implements WebPage {
 			String v = request.getPartAsString("indexOwnerEmail", 256);
 			config.setIndexOwnerEmail(v);
 		}
+		if (request.isPartSet("separatePageIndex")) {
+			String v = request.getPartAsString("separatePageIndex", 256);
+			config.setSeparatePageIndex(Boolean.parseBoolean(v));
+		}
+		if (request.isPartSet("startDepth")) {
+			String v = request.getPartAsString("startDepth", 256);
+			config.setStartDepth(Integer.parseInt(v));
+		}
 		if (request.isPartSet("debug")) {
 			String v = request.getPartAsString("debug", 10);
 			config.debug(Boolean.valueOf(v));
@@ -162,6 +170,16 @@ class ConfigPage implements WebPage {
 		        "Maximum Subindex Size", "Maximum size of a subindex (MiB).", // 
 		        "indexSubindexMaxSize", //
 		        Integer.toString(config.getIndexSubindexMaxSize() / 1024 / 1024));
+		addConfig(indexConfig,
+				"Subindex start depth", "1 : start with 16 subindexes ; 2 : start with 256 subindexes(better for large indexes)",
+				"startDepth",
+				new String[]{"1", "2"},
+				Integer.toString(config.getStartDepth()));
+		addConfig(indexConfig,
+				"Page index(Experimental, not supported in XMLLibrarian)", "If set to separate, all pages are written to a separate index instead of being combined in the subindexes",
+				"seperatePageIndex",
+				new String[]{"integrated", "separate"},
+				config.getSeparatePageIndex()? "separate" : "integrated");
 		addConfig(indexConfig, //
 		        "Write debug info", "Write debug info", // 
 		        "debug", //
