@@ -71,6 +71,13 @@ public class IndexWriter {
 		indices = null;
 	}
 
+	/**
+	 * Write an xml index
+	 * @param perstRoot root of database to write index from
+	 * @param indexdir_ dir to write index to, or null to use default
+	 * @param separatepageindex whether to separate pages
+	 * @throws java.lang.Exception
+	 */
 	public synchronized void makeIndex(PerstRoot perstRoot, String indexdir_, boolean separatepageindex) throws Exception {
 		logMINOR = Logger.shouldLog(Logger.MINOR, this);
 		pause = false;
@@ -123,6 +130,9 @@ public class IndexWriter {
 		}
 	}
 
+	/**
+	 * Pause writing this index, index writing will pause as soon as possible
+	 */
 	void pause() {
 		pause = true;
 	}
@@ -472,6 +482,7 @@ public class IndexWriter {
 	 * @throws IOException
 	 */
 	private boolean generateXML(PerstRoot perstRoot, String prefix, boolean separatepageindex ) throws IOException, InterruptedException {
+		// Escape if pause requested
 		if(pause==true)
 			throw new InterruptedException();
 		final Config config = perstRoot.getConfig();
@@ -522,6 +533,9 @@ public class IndexWriter {
 			Element keywordsElement = xmlDoc.createElementNS(null, "keywords");
 			IterableIterator<Term> termIterator = perstRoot.getTermIterator(prefix, prefix + "g");
 			for (Term term : termIterator) {
+				// Escape if pause requested
+				if(pause==true)
+					throw new InterruptedException();
 				Element wordElement = xmlDoc.createElementNS(null, "word");
 				wordElement.setAttributeNS(null, "v", term.getWord());
 				if (config.isDebug()) {
@@ -538,6 +552,9 @@ public class IndexWriter {
 					return false;
 
 				for (Long page : pages.keySet()) {
+					// Escape if pause requested
+					if(pause==true)
+						throw new InterruptedException();
 					TermPosition termPos = pages.get(page);
 					if (termPos == null)
 						continue;
