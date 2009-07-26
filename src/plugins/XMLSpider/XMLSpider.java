@@ -3,7 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.XMLSpider;
 
-import plugins.Library.fcp.RemoteLibrary;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -75,7 +74,7 @@ import java.io.InputStreamReader;
 public class XMLSpider implements FredPlugin, FredPluginThreadless,
 		FredPluginVersioned, FredPluginRealVersioned, FredPluginL10n, USKCallback, RequestClient {
 
-	RemoteLibrary library;
+	//LibraryAPI1 library;
 
 	public synchronized boolean cancelWrite() {
 		if(writingIndex)
@@ -442,6 +441,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 			"size=" + Long.toString(data.size()),
 			"mime=" + mimeType
 		});
+		Logger.normal(this, "mime : " + mimeType);
 
 		boolean dbTransactionEnded = false;
 		db.beginThreadTransaction(Storage.EXCLUSIVE_TRANSACTION);
@@ -456,7 +456,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 			Logger.minor(this, "Successful: " + uri + " : " + page.getId());
 
 			try {
-				if("text/plain".equals(mimeType))
+				if(!"text/plain".equals(mimeType))
 					ContentFilter.filter(data, new NullBucketFactory(), mimeType,
 							uri.toURI("http://127.0.0.1:8888/"), pageCallBack);
 				else{
@@ -634,7 +634,8 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 			queueURI(initialURIs[i], "bookmark", false);
 
 		callbackExecutor.execute(new StartSomeRequestsCallback());
-		library = new RemoteLibrary(pr);
+		// Get the Library API
+		//library = pr.getPluginAPI("plugins.Library.Main");
 	}
 
 	private WebInterface webInterface;
