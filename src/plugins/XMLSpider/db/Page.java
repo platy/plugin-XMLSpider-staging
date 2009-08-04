@@ -3,6 +3,8 @@
  */
 package plugins.XMLSpider.db;
 
+import freenet.keys.FreenetURI;
+import java.net.MalformedURLException;
 import plugins.XMLSpider.org.garret.perst.FieldIndex;
 import plugins.XMLSpider.org.garret.perst.Persistent;
 import plugins.XMLSpider.org.garret.perst.Storage;
@@ -12,6 +14,10 @@ public class Page extends Persistent implements Comparable<Page> {
 	protected long id;
 	/** URI of the page */
 	protected String uri;
+	/** Zeroed edition of USK uris */
+	protected String uskuri;
+	/** usk edition of uri if usk, negative elsewise */
+	protected long edition;
 	/** Title */
 	protected String pageTitle;
 	/** Status */
@@ -32,8 +38,15 @@ public class Page extends Persistent implements Comparable<Page> {
 	public Page() {
 	}
 
-	Page(String uri, String comment, Storage storage) {
-		this.uri = uri;
+	Page(FreenetURI uri, String comment, Storage storage) {
+		this.uri = uri.toString();
+		if(uri.isSSKForUSK() || uri.isUSK()){
+			this.uskuri = uri.setSuggestedEdition(0).toString();
+			this.edition = uri.getEdition();
+		}else{
+			this.uskuri = null;
+			this.edition = -1;
+		}
 		this.comment = comment;
 		this.status = Status.QUEUED;
 		this.retries = 0;
@@ -74,6 +87,10 @@ public class Page extends Persistent implements Comparable<Page> {
 
 	public String getURI() {
 		return uri;
+	}
+
+	public long getEdition() {
+		return edition;
 	}
 	
 	public long getId() {
@@ -123,7 +140,7 @@ public class Page extends Persistent implements Comparable<Page> {
 
 	@Override
 	public String toString() {
-		return "[PAGE: id=" + id + ", title=" + pageTitle + ", uri=" + uri + ", status=" + status + ", comment="
+		return "[PAGE: id=" + id + ", title=" + pageTitle + ", uri=" + getURI() + ( edition>=0 ? (", edition=" + edition) : "" ) + ", status=" + status + ", comment="
 		+ comment
 		+ "]";
 	}

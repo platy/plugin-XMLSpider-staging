@@ -33,6 +33,9 @@ public class Config extends Persistent implements Cloneable {
 	private boolean debug;
 	private boolean separatePageIndex;
 	private int startDepth;
+	private String[] stopWords;
+	private boolean discardOldEditions;
+	private long timeProduced;
 
 	public Config() {
 	}
@@ -65,6 +68,13 @@ public class Config extends Persistent implements Cloneable {
 		        ".mpg", ".ogg", ".ogv", ".mp3", ".avi", ".wv", ".swf", ".wmv", ".mkv", ".flac", ".ogm", ".divx", ".mpeg", ".rm", ".wma", ".asf", ".rmvb", ".mov", ".flv", ".mp4", // media
 		        ".css", ".sig", ".gml", ".df", ".cbr", ".gf", ".pdf", ".db" // other
 		};
+		// These are the 10 most used words according to the oxford english corpusaccounting for 25% of the words used therein
+		stopWords = new String[] {
+				"the", "be", "to", "of", "and", "a", "in", "that", "have", "i"
+		};
+		// Should old editions of USKs be discarded?
+		discardOldEditions = true;
+
 
 		requestPriority = RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS;
 
@@ -88,6 +98,27 @@ public class Config extends Persistent implements Cloneable {
 
 	public int getStartDepth() {
 		return startDepth;
+	}
+
+	public long getTimeProduced() {
+		return timeProduced;
+	}
+
+	/**
+	 * Check if a word is in the stop word list
+	 * @param word
+	 * @return
+	 */
+	public boolean isStopWord(String word) {
+		for (String string : stopWords) {
+			if ( string.equalsIgnoreCase(word))
+				return true;
+		}
+		return false;
+	}
+
+	public void setDiscardOldEditions(boolean parseBoolean) {
+		discardOldEditions = parseBoolean;
 	}
 
 	public synchronized void setIndexDir(String indexDir) {
@@ -221,6 +252,14 @@ public class Config extends Persistent implements Cloneable {
 		return badlistedExtensions;
 	}
 
+	public synchronized String[] getStopWords() {
+		return stopWords;
+	}
+
+	public synchronized boolean getDiscardOldEditions () {
+		return this.discardOldEditions;
+	}
+
 	public synchronized void setRequestPriority(short requestPriority) {
 		assert !isPersistent();
 		this.requestPriority = requestPriority;
@@ -245,5 +284,13 @@ public class Config extends Persistent implements Cloneable {
 
 	public void setStartDepth(int parseInt) {
 		startDepth = parseInt;
+	}
+
+	public void setStopWords(String[] v0) {
+		stopWords = v0;
+	}
+
+	public void setTimeProduced(long currentTimeMillis) {
+		timeProduced = currentTimeMillis;
 	}
 }

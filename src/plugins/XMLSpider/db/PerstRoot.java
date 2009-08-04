@@ -1,5 +1,6 @@
 package plugins.XMLSpider.db;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -9,6 +10,7 @@ import plugins.XMLSpider.org.garret.perst.Key;
 import plugins.XMLSpider.org.garret.perst.Persistent;
 import plugins.XMLSpider.org.garret.perst.Storage;
 import freenet.keys.FreenetURI;
+import plugins.XMLSpider.org.garret.perst.StorageError;
 
 public class PerstRoot extends Persistent {
 	protected FieldIndex<Term> md5Term;
@@ -16,6 +18,8 @@ public class PerstRoot extends Persistent {
 
 	protected FieldIndex<Page> idPage;
 	protected FieldIndex<Page> uriPage;
+	/** Indexes the usk's with editions zeroed so old ones can be discarded easily */
+	protected FieldIndex<Page> uskPage;
 	protected FieldIndex<Page> queuedPages;
 	protected FieldIndex<Page> failedPages;
 	protected FieldIndex<Page> succeededPages;
@@ -33,6 +37,7 @@ public class PerstRoot extends Persistent {
 
 		root.idPage = storage.createFieldIndex(Page.class, "id", true);
 		root.uriPage = storage.createFieldIndex(Page.class, "uri", true);
+		root.uskPage = storage.createFieldIndex(Page.class, "uskuri", false);
 		root.queuedPages = storage.createFieldIndex(Page.class, "retries", false); // Queued pages sorted by retries and change date
 		root.failedPages = storage.createFieldIndex(Page.class, "lastChange", false);
 		root.succeededPages = storage.createFieldIndex(Page.class, "lastChange", false);
@@ -42,6 +47,11 @@ public class PerstRoot extends Persistent {
 		storage.setRoot(root);
 
 		return root;
+	}
+
+	public ArrayList<Page> getAllEditions(FreenetURI uri) {
+		Key key = new Key(uri.setSuggestedEdition(0).toString(), true);
+		return uskPage.getList(key, key);
 	}
 
 	public Term getTermByWord(String word, boolean create) {
@@ -99,7 +109,7 @@ public class PerstRoot extends Persistent {
 			Page page = uriPage.get(new Key(uri.toString()));
 
 			if (create && page == null) {
-				page = new Page(uri.toString(), comment, getStorage());
+				page = new Page(uri, comment, getStorage());
 
 				idPage.append(page);
 				uriPage.put(page);
@@ -122,6 +132,33 @@ public class PerstRoot extends Persistent {
 		} finally {
 			idPage.unlock();
 		}
+	}
+
+	/**
+	 * remove instances of this page from all the indexes, ignore StorageErrors as they will be thorwn if the page doesnt exist
+	 * @param page
+	 */
+	public void removePage(Page page) {
+		try{
+			failedPages.remove(page);
+		}catch(StorageError e){}
+		try{
+			queuedPages.remove(page);
+		}catch(StorageError e){}
+		try{
+			succeededPages.remove(page);
+		}catch(StorageError e){}
+		try{
+			idPage.remove(page);
+		}catch(StorageError e){}
+		try{
+			uriPage.remove(page);
+		}catch(StorageError e){}
+		try{
+			uskPage.remove(page);
+		}catch(StorageError e){}
+		
+		page.deallocate();
 	}
 
 	FieldIndex<Page> getPageIndex(Status status) {
