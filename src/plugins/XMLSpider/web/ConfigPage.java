@@ -72,6 +72,20 @@ class ConfigPage implements WebPage {
 			if (good)
 				config.setBadlistedExtensions(v0);
 		}
+		if (request.isPartSet("stopWords")) {
+			String v = request.getPartAsString("stopWords", 512);
+			String[] v0 = v.split(",");
+			boolean good = true;
+			for (int i = 0; i < v0.length; i++) {
+				v0[i] = v0[i].trim();
+				if (v0[i].length() == 0 || v0[i].charAt(0) != '.') {
+					good = false;
+					break;
+				}
+			}
+			if (good)
+				config.setStopWords(v0);
+		}
 		
 		if (request.isPartSet("indexDir")) {
 			String v = request.getPartAsString("indexDir", 256);
@@ -96,6 +110,10 @@ class ConfigPage implements WebPage {
 		if (request.isPartSet("startDepth")) {
 			String v = request.getPartAsString("startDepth", 256);
 			config.setStartDepth(Integer.parseInt(v));
+		}
+		if (request.isPartSet("discardOldEditions")) {
+			String v = request.getPartAsString("discardOldEditions", 5);
+			config.setDiscardOldEditions(Boolean.parseBoolean(v));
 		}
 		if (request.isPartSet("debug")) {
 			String v = request.getPartAsString("debug", 10);
@@ -146,6 +164,15 @@ class ConfigPage implements WebPage {
 		        "Bad Listed Extensions", "Comma seprated list of banned URI suffix.", // 
 		        "badListedExtensions", //
 		        config.getBadlistedExtensions());
+		addConfig(spiderConfig, //
+		        "Stop Words", "Comma seprated list of common words to ignore.", //
+		        "stopWords", //
+		        config.getStopWords());
+		addConfig(spiderConfig,
+				"Discard old USK editions", "Should old editions of USK's be discarded?",
+				"discardOldEditions",
+				new String[] { "true", "false" },
+				Boolean.toString(config.getDiscardOldEditions()));
 		
 		configForm.addChild("div", "class", "configprefix", "Index Writer Options");
 		
