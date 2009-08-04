@@ -104,6 +104,7 @@ public class PerstRoot extends Persistent {
 	public Page getPageByURI(FreenetURI uri, boolean create, String comment) {
 		idPage.exclusiveLock();
 		uriPage.exclusiveLock();
+		uskPage.exclusiveLock();
 		queuedPages.exclusiveLock();
 		try {
 			Page page = uriPage.get(new Key(uri.toString()));
@@ -113,6 +114,7 @@ public class PerstRoot extends Persistent {
 
 				idPage.append(page);
 				uriPage.put(page);
+				uskPage.put(page);
 				queuedPages.put(page);
 			}
 
@@ -120,6 +122,7 @@ public class PerstRoot extends Persistent {
 		} finally {
 			queuedPages.unlock();
 			uriPage.unlock();
+			uskPage.unlock();
 			idPage.unlock();
 		}
 	}
