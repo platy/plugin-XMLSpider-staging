@@ -1,7 +1,6 @@
-/**
- * Main page
- * @author j16sdiz (1024D/75494252)
- */
+/* This code is part of Freenet. It is distributed under the GNU General
+ * Public License, version 2 (or at your option any later version). See
+ * http://www.gnu.org/ for further details of the GPL. */
 package plugins.XMLSpider.web;
 
 import java.util.ArrayList;
@@ -52,7 +51,7 @@ class IndexWriterPage implements WebPage {
 		if (request.isPartSet("createIndex")) {
 			synchronized (this) {
 				String indexdir = request.getPartAsString("indexdir", 512);
-				String separatepageindex = request.getPartAsString("separatepageindex", 10);
+				boolean separatepageindex = Boolean.parseBoolean(request.getPartAsString("separatepageindex", 10));
 				String indexformat = request.getPartAsString("indexformat", 10);
 								
 				xmlSpider.scheduleMakeIndex(indexdir, separatepageindex, indexformat);
@@ -107,8 +106,8 @@ class IndexWriterPage implements WebPage {
 		statusContent.addChild("#", "Index Writer: ");
 		synchronized (this) {
 			if (xmlSpider.isWritingIndex()){
-				statusContent.addChild("span", "style", "color: red; font-weight: bold;", "RUNNING");
-				HTMLNode pauseform = pr.addFormChild(statusContent, "/xmlspider/indexwriter", "pauseform");
+				statusContent.addChild("span", "style", "color: red; font-weight: bold;", xmlSpider.getIndexWriterStatus() );
+				HTMLNode pauseform = pr.addFormChild(statusContent, "/xmlspider/", "pauseform");
 				pauseform.addChild("input", //
 						new String[] { "name", "type", "value" },//
 						new String[] { "pausewrite", "hidden", "pausewrite" });
@@ -125,8 +124,8 @@ class IndexWriterPage implements WebPage {
 		}
 		statusContent.addChild("br");
 		statusContent.addChild("#", "Last Written: "
-		        + (xmlSpider.getIndexWriter().tProducedIndex == 0 ? "NEVER" : new Date(
-		                xmlSpider.getIndexWriter().tProducedIndex).toString()));
+		        + (xmlSpider.getConfig().getTimeProduced() == 0 ? "NEVER" : new Date(
+		                xmlSpider.getConfig().getTimeProduced()).toString()));
 
 
 		

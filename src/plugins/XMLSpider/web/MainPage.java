@@ -126,14 +126,14 @@ class MainPage implements WebPage {
 		statusContent.addChild("#", "Index Writer: ");
 		synchronized (this) {
 			if (xmlSpider.isWritingIndex()){
-				statusContent.addChild("span", "style", "color: red; font-weight: bold;", "RUNNING");
+				statusContent.addChild("span", "style", "color: red; font-weight: bold;", xmlSpider.getIndexWriterStatus() );
 				HTMLNode pauseform = pr.addFormChild(statusContent, "/xmlspider/", "pauseform");
 				pauseform.addChild("input", //
 						new String[] { "name", "type", "value" },//
 						new String[] { "pausewrite", "hidden", "pausewrite" });
 				pauseform.addChild("input", new String[]{"type", "value"}, new String[]{"submit", "Pause write"});
 			}else if (xmlSpider.isWriteIndexScheduled()){
-				statusContent.addChild("span", "style", "color: blue; font-weight: bold;", "SCHEDULED");
+				statusContent.addChild("span", "style", "color: blue; font-weight: bold;", xmlSpider.isGarbageCollecting() ? "GARBAGE COLLECTING" : "SCHEDULED" );
 				HTMLNode cancelform = pr.addFormChild(statusContent, "/xmlspider/", "cancelform");
 				cancelform.addChild("input", //
 						new String[] { "name", "type", "value" },//
@@ -144,8 +144,8 @@ class MainPage implements WebPage {
 		}
 		statusContent.addChild("br");
 		statusContent.addChild("#", "Last Written: "
-		        + (xmlSpider.getIndexWriter().tProducedIndex == 0 ? "NEVER" : new Date(
-		                xmlSpider.getIndexWriter().tProducedIndex).toString()));
+		        + (xmlSpider.getConfig().getTimeProduced() == 0 ? "NEVER" : new Date(
+		                xmlSpider.getConfig().getTimeProduced()).toString()));
 
 		// Column 2
 		nextTableCell = overviewTableRow.addChild("td", "class", "second");
