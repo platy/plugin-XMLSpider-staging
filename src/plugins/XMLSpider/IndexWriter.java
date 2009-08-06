@@ -529,16 +529,17 @@ public class IndexWriter {
 			/* Adding header to the index */
 			Element headerElement = xmlDoc.createElementNS(null, "header");
 			/* -> title */
-			Element subHeaderElement = xmlDoc.createElementNS(null, "title");
-			Text subHeaderText = xmlDoc.createTextNode(config.getIndexTitle());
-			subHeaderElement.appendChild(subHeaderText);
-			headerElement.appendChild(subHeaderElement);
+			Element titleElement = xmlDoc.createElementNS(null, "title");
+			Text titleText = xmlDoc.createTextNode(config.getIndexTitle());
+			titleElement.appendChild(titleText);
+			headerElement.appendChild(titleElement);
 
 			/* List of files referenced in this subindex */
 			Element filesElement = xmlDoc.createElementNS(null, "files"); /*
 																		 * filesElement !=
 																		 * fileElement
 																		 */
+			filesElement.setAttribute("totalFileCount", Integer.toString(perstRoot.getPageCount(Status.SUCCEEDED)));
 			Set<Long> fileid = new HashSet<Long>();
 
 			/* Adding word index */
