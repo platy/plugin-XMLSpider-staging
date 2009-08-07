@@ -594,6 +594,7 @@ public class IndexWriter {
 							}
 							uriElement.appendChild(xmlDoc.createTextNode(positionList.toString()));
 							wordElement.appendChild(uriElement);
+							wordElement.setAttribute("fileCount", Integer.toString( pages.size() ));
 
 							estimateSize += 13;
 							estimateSize += positionList.length();
