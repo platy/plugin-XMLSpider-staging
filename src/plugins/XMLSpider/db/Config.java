@@ -33,6 +33,7 @@ public class Config extends Persistent implements Cloneable {
 	private boolean debug;
 	private boolean separatePageIndex;
 	private int startDepth;
+	/** @deprecated Switched to hard coded list, this might be an option in the future though */
 	private String[] stopWords;
 	private boolean discardOldEditions;
 	private long timeProduced;
@@ -81,6 +82,7 @@ public class Config extends Persistent implements Cloneable {
 		storage.makePersistent(this);
 	}
 
+	@Override
 	public synchronized Config clone() {
 		try {
 			Config config = (Config) super.clone();
@@ -107,13 +109,13 @@ public class Config extends Persistent implements Cloneable {
 	/**
 	 * Check if a word is in the stop word list
 	 * @param word
+	 * @deprecated Switched to hard coded list, this might be an option in the future though
 	 * @return
 	 */
 	public boolean isStopWord(String word) {
-		for (String string : stopWords) {
+		for (String string : stopWords)
 			if ( string.equalsIgnoreCase(word))
 				return true;
-		}
 		return false;
 	}
 
@@ -252,6 +254,7 @@ public class Config extends Persistent implements Cloneable {
 		return badlistedExtensions;
 	}
 
+	/**@deprecated Switched to hard coded list, this might be an option in the future though*/
 	public synchronized String[] getStopWords() {
 		return stopWords;
 	}
@@ -286,6 +289,7 @@ public class Config extends Persistent implements Cloneable {
 		startDepth = parseInt;
 	}
 
+	/** @deprecated Switched to hard coded list, this might be an option in the future though*/
 	public void setStopWords(String[] v0) {
 		stopWords = v0;
 	}

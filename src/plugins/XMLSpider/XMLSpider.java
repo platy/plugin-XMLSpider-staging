@@ -62,6 +62,7 @@ import freenet.support.io.NativeThread;
 import freenet.support.io.NullBucketFactory;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 
 /**
  * XMLSpider. Produces xml index for searching words. 
@@ -817,16 +818,21 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 			if (logDEBUG)
 				Logger.debug(this, "addWord on " + page.getId() + " (" + word + "," + position + ")");
 
-			if (word.length() < 3)
+			// Skip word if it is a stop word
+			if (word.length() < 3 || isStopWord(word))
 				return;
 			Term term = getTermByWord(word, true);
-			// Skip word if it is a stop word
-			if(getConfig().isStopWord(word))
-				return;
 			TermPosition termPos = term.getTermPosition(page.getId(), true);
 			termPos.addPositions(position);
 			page.termCountIncrement();
 		}
+	}
+
+	private static List<String> stopWords = Arrays.asList(new String[]{
+		"the", "and", "that", "have", "for"		// English stop words
+	});
+	public static boolean isStopWord(String word) {
+		return stopWords.contains(word);
 	}
 
 	public void onFoundEdition(long l, USK key, ObjectContainer container, ClientContext context, boolean metadata,

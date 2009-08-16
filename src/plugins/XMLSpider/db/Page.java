@@ -4,7 +4,6 @@
 package plugins.XMLSpider.db;
 
 import freenet.keys.FreenetURI;
-import java.net.MalformedURLException;
 import plugins.XMLSpider.org.garret.perst.FieldIndex;
 import plugins.XMLSpider.org.garret.perst.Persistent;
 import plugins.XMLSpider.org.garret.perst.Storage;

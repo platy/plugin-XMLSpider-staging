@@ -72,6 +72,7 @@ class ConfigPage implements WebPage {
 			if (good)
 				config.setBadlistedExtensions(v0);
 		}
+		/* stopWords is hardcoded in XMLSpider.java for now
 		if (request.isPartSet("stopWords")) {
 			String v = request.getPartAsString("stopWords", 512);
 			String[] v0 = v.split(",");
@@ -85,7 +86,7 @@ class ConfigPage implements WebPage {
 			}
 			if (good)
 				config.setStopWords(v0);
-		}
+		}*/
 		
 		if (request.isPartSet("indexDir")) {
 			String v = request.getPartAsString("indexDir", 256);
@@ -164,10 +165,13 @@ class ConfigPage implements WebPage {
 		        "Bad Listed Extensions", "Comma seprated list of banned URI suffix.", // 
 		        "badListedExtensions", //
 		        config.getBadlistedExtensions());
+
+		/* stopWords is hardcoded in XMLSpider.java for now
 		addConfig(spiderConfig, //
 		        "Stop Words", "Comma seprated list of common words to ignore.", //
 		        "stopWords", //
 		        config.getStopWords());
+		 */
 		addConfig(spiderConfig,
 				"Discard old USK editions", "Should old editions of USK's be discarded?",
 				"discardOldEditions",
