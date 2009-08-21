@@ -54,6 +54,17 @@ public class PerstRoot extends Persistent {
 		return uskPage.getList(key, key);
 	}
 
+	public Term getTermByMD5(String termMd5) {
+		md5Term.exclusiveLock();
+		wordTerm.exclusiveLock();
+		try {
+			return md5Term.get(new Key(termMd5));
+		} finally {
+			wordTerm.unlock();
+			md5Term.unlock();
+		}
+	}
+
 	public Term getTermByWord(String word, boolean create) {
 		md5Term.exclusiveLock();
 		wordTerm.exclusiveLock();
@@ -100,12 +111,29 @@ public class PerstRoot extends Persistent {
 			md5Term.unlock();
 		}
 	}
-
+	
 	public Page getPageByURI(FreenetURI uri, boolean create, String comment) {
+		return getPageByURI(uri, create, comment, Status.QUEUED);
+	}
+
+	public Page getPageByURI(FreenetURI uri, boolean create, String comment, Status initialStatus) {
 		idPage.exclusiveLock();
 		uriPage.exclusiveLock();
 		uskPage.exclusiveLock();
-		queuedPages.exclusiveLock();
+
+		switch (initialStatus){
+			case QUEUED :
+				queuedPages.exclusiveLock();
+				break;
+			case FAILED :
+				failedPages.exclusiveLock();
+				break;
+			case SUCCEEDED :
+				succeededPages.exclusiveLock();
+				break;
+			default:
+				throw new RuntimeException(initialStatus + " is bad, so is this error");
+		}
 		try {
 			Page page = uriPage.get(new Key(uri.toString()));
 
@@ -114,13 +142,34 @@ public class PerstRoot extends Persistent {
 
 				idPage.append(page);
 				uriPage.put(page);
-				uskPage.put(page);
-				queuedPages.put(page);
+				if(page.getUSK()!=null)
+					uskPage.put(page);
+				switch (initialStatus){
+					case QUEUED :
+						queuedPages.put(page);
+						break;
+					case FAILED :
+						failedPages.put(page);
+						break;
+					case SUCCEEDED :
+						succeededPages.put(page);
+						break;
+				}
 			}
 
 			return page;
 		} finally {
-			queuedPages.unlock();
+			switch (initialStatus){
+				case QUEUED :
+					queuedPages.unlock();
+					break;
+				case FAILED :
+					failedPages.unlock();
+					break;
+				case SUCCEEDED :
+					succeededPages.unlock();
+					break;
+			}
 			uriPage.unlock();
 			uskPage.unlock();
 			idPage.unlock();

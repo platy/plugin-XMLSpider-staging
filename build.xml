@@ -120,4 +120,17 @@
 		<delete dir="${build-test}"/>
 		<delete dir="${dist}"/>
 	</target>
+
+	<target name="import" depends="dist" description="Runs the IndexImporter">
+		<java classname="plugins.XMLSpider.IndexImporter">
+			<classpath>
+				<pathelement location="${freenet-ext.location}"/>
+				<pathelement location="${freenet-cvs-snapshot.location}"/>
+				<fileset dir="lib/">
+					<include name="**/*.jar"/>
+				</fileset>
+				<pathelement location="${dist}/XMLSpider.jar"/>
+			</classpath>
+		</java>
+	</target>
 </project>

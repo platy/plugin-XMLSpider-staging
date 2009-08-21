@@ -213,7 +213,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 						Page page = it.next();
 						try {
 							// Skip if getting this page already or newer edition of it already suceeded
-							if (runningFetch.containsKey(page) || (getConfig().getDiscardOldEditions() && newerSuceeded(new FreenetURI(page.getURI()))))
+							if (runningFetch.containsKey(page) || (getConfig().getDiscardOldEditions() && newerSuceeded(new FreenetURI(page.getURI()))))	// TODO dont just ignore, also discard
 								continue;
 							
 							ClientGetter getter = makeGetter(page);

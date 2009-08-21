@@ -63,6 +63,24 @@ public class Page extends Persistent implements Comparable<Page> {
 	public void incrementRetries() {
 		retries++;
 	}
+
+	/**
+	 * Only for importer
+	 * @param lastChange
+	 * @deprecated TODO remove
+	 */
+	public void setLastChange(long lastChange) {
+		this.lastChange = lastChange;
+	}
+
+	/**
+	 * Only for importer, will be removed
+	 * @param retries
+	 * @deprecated TODO remove
+	 */
+	public void setRetries(int retries) {
+		this.retries = retries;
+	}
 	
 	public synchronized void setStatus(Status status) {
 		preModify();
@@ -75,9 +93,7 @@ public class Page extends Persistent implements Comparable<Page> {
 	}
 
 	public synchronized void setComment(String comment) {
-		preModify();
 		this.comment = comment;
-		postModify();
 	}
 	
 	public String getComment() {
@@ -97,9 +113,7 @@ public class Page extends Persistent implements Comparable<Page> {
 	}
 	
 	public void setPageTitle(String pageTitle) {
-		preModify();
 		this.pageTitle = pageTitle;
-		postModify();
 	}
 
 	public String getPageTitle() {
@@ -107,9 +121,7 @@ public class Page extends Persistent implements Comparable<Page> {
 	}
 	
 	public void setMeta(String[] meta) {
-		preModify();
 		this.meta = meta;
-		postModify();
 	}
 
 	public String[] getMeta(){
@@ -133,6 +145,15 @@ public class Page extends Persistent implements Comparable<Page> {
 		return id == ((Page) obj).id;
 	}
 
+	/**
+	 * Sets the termCount, only for use in importer
+	 * @param termCount number of words in this page
+	 * @deprecated TODO remove
+	 */
+	public void setTermCount(int termCount) {
+		this.termCount = termCount;
+	}
+
 	public void termCountIncrement() {
 		termCount++;
 	}
@@ -146,6 +167,10 @@ public class Page extends Persistent implements Comparable<Page> {
 
 	public int compareTo(Page o) {
 		return new Long(id).compareTo(o.id);
+	}
+
+	String getUSK() {
+		return uskuri;
 	}
 	
 	private void preModify() {

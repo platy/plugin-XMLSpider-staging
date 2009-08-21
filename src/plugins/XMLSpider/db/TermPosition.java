@@ -12,10 +12,14 @@ public class TermPosition extends Persistent {
 
 	public TermPosition() {
 	}
+	
+	public TermPosition(Storage storage, int[] positions){
+		this.positions = positions;
+		storage.makePersistent(this);
+	}
 
 	public TermPosition(Storage storage) {
-		positions = new int[0];
-		storage.makePersistent(this);
+		this(storage, new int[0]);
 	}
 
 	public synchronized void addPositions(int position) {
@@ -27,7 +31,7 @@ public class TermPosition extends Persistent {
 		modify();
 	}
 
-	public synchronized int[] addPositions() {
+	public synchronized int[] getPositions() {
 		return positions;
 	}
 }
