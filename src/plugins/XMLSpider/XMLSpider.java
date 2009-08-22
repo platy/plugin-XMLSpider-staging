@@ -120,7 +120,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 	protected Set<String> allowedMIMETypes;	
 
 	static int dbVersion = 43;
-	static int version = 37;
+	static int version = 38;
 	public static final String pluginName = "XML spider " + version;
 
 	public String getVersion() {
