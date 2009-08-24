@@ -32,12 +32,6 @@ public class IndexWriterToadlet extends Toadlet {
 		return "/xmlspider/indexwriter";
 	}
 
-	@Override
-	public String supportedMethods() {
-		return "GET, POST";
-	}
-
-	@Override
 	public void handleGet(URI uri, final HTTPRequest request, final ToadletContext ctx) 
 	throws ToadletContextClosedException, IOException, RedirectException {
 		ClassLoader origClassLoader = Thread.currentThread().getContextClassLoader();
@@ -53,8 +47,7 @@ public class IndexWriterToadlet extends Toadlet {
 			Thread.currentThread().setContextClassLoader(origClassLoader);
 		}
 	}
-	
-	@Override
+
 	public void handlePost(URI uri, HTTPRequest request, final ToadletContext ctx) throws ToadletContextClosedException, IOException, RedirectException {
 		ClassLoader origClassLoader = Thread.currentThread().getContextClassLoader();
 		Thread.currentThread().setContextClassLoader(XMLSpider.class.getClassLoader());

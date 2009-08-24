@@ -91,6 +91,7 @@
 		<jar jarfile="${dist}/XMLSpider.jar" duplicate="fail">
 			<manifest>
 				<attribute name="Plugin-Main-Class" value="plugins.XMLSpider.XMLSpider"/>
+				<attribute name="Main-Class" value="plugins.XMLSpider.IndexImporter" />
 			</manifest>
 			<fileset dir="src/" casesensitive="no">
 				<include name="*.txt"/>

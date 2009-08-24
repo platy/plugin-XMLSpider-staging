@@ -2,8 +2,11 @@
 package plugins.XMLSpider;
 
 import freenet.keys.FreenetURI;
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.MalformedURLException;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.logging.Level;
@@ -25,109 +28,149 @@ import plugins.XMLSpider.org.garret.perst.StorageFactory;
  * already exist in the current database, initially it will be made to run executed
  * separately and put into the interface for first run in future.
  * 
+ * TODO options
+ * TODO Logger
+ * 
  * @author MikeB
  */
 public class IndexImporter {
-	
-	
-	public static void main(String[] args) {
-		String[] sourcepaths = new String[]{
-			//"/home/devl/Freenet/XMLSpider-37.dbs",
-			"/home/devl/Freenet/XMLSpider-40.dbs",
-			"/home/devl/Freenet/XMLSpider-41.dbs",
-			"/home/devl/Freenet/XMLSpider-42.dbs",
-			"/home/devl/Freenet/XMLSpider-42.dbso",
-			"/home/devl/Freenet/XMLSpider-43.dbs"
-		};
-		String destinationpath = "XMLSpider-new.dbs";
-		
-		for (String sourcepath : sourcepaths) {
-			IndexImporter importer = new IndexImporter(sourcepath, destinationpath);
-			importer.importDatabase();
-		}
-		
-	}
 	private IPersistent sourceRoot;
 	private Storage sourcedb;
 	private Storage destdb;
 	private PerstRoot destRoot;
-	private int dbType = 0;
+	private String destPath;
+	private String sourcePath;
+	
+	private boolean allowOld;
+	private boolean allowAppend;
+	private boolean allowStopWords;
+	
+	
+	
+	public static void main(String[] args) {
+		System.out.println("This importer is designed to import XMLSpider database versions v34 - v38, it is entirely possible it will work on earlier versions but I haven't looked at them");
+		boolean append = false;
+		boolean old = false;
+		boolean stopWords = false;
+		String destinationpath = null;
+		String sourcepath = null;
 
-	private IndexImporter(String sourcepath, String destinationpath) {
-		System.out.println("Importing from "+sourcepath);
+		for (int i = 0; i < args.length; i++) {
+			String string = args[i];
+			if(string.startsWith("-")){
+				if(string.contains("a"))
+					append = true;
+				if(string.contains("O"))
+					old = true;
+				if(string.contains("S"))
+					stopWords = true;
+			}else if(sourcepath == null)
+				sourcepath = string;
+			else if(destinationpath == null)
+				destinationpath = string;
+			else
+				System.out.println("Did not understand argument \""+string+"\"");
+		}
 		
-		sourcedb = getDB(sourcepath);
-		System.out.println("memory="+Runtime.getRuntime().totalMemory());
-		destdb = getDB(destinationpath);
+		IndexImporter importer;
+		try {
+			importer = new IndexImporter(sourcepath, destinationpath, old, append, stopWords);
+			importer.importV38Database();
+		} catch (IOException ex) {
+			System.out.println(ex.getMessage());
+		}
 		
-		System.out.println("memory="+Runtime.getRuntime().totalMemory());
-		
-		sourceRoot = sourcedb.getRoot();
-		destRoot = getPerstRoot(destdb);
 	}
 
 	/**
-	 * This will import the succeeded pages, queuedPages and terms. Stopwords will be ignored, old usks should also be ignored but this action is not guarenteed
+	 * Sets up an index database importer
+	 * @param sourcepath the database to import from
+	 * @param destinationpath the database to write to, if writing to an existing db you should probably back it up first
+	 * @param allowOld if set all pages will be imported, if unset an effort is made to not import old ones
+	 * @param allowAppend the normal behaviour is not to allow adding to an existing database, this forces the behaviour
+	 * @param allowStopWords the normal behaviour is not to import stopWords, this overrides
+	 */
+	private IndexImporter(String sourcepath, String destinationpath, boolean allowOld, boolean allowAppend, boolean allowStopWords) throws IOException {
+		System.out.println("Importing from "+sourcepath);
+		
+		this.sourcePath = sourcepath;
+		this.destPath = destinationpath;
+		this.allowOld = allowOld;
+		this.allowAppend = allowAppend;
+		this.allowStopWords = allowStopWords;
+		
+		if(!allowAppend && (new File(destinationpath)).exists())
+			throw new IOException("Destination path already exists, you are recommended to not import into an existing database without backing it up, oreride this by setting allowAppend (\"-a\")");
+		
+		sourcedb = getDB(sourcepath);
+		sourceRoot = sourcedb.getRoot();
+		if(sourceRoot==null)
+			throw new NullPointerException("Source root is null, thats bad");
+		System.out.println("memory="+Runtime.getRuntime().totalMemory());
+		
+		
+		destdb = getDB(destinationpath);
+		destRoot = getPerstRoot(destdb);
+		System.out.println("memory="+Runtime.getRuntime().totalMemory());
+	}
+	
+	/**
+	 * This will import the succeeded pages, queuedPages and terms. Stopwords will be ignored unless overridden, old usks should also be ignored but this action is not guarenteed
 	 * @param source
 	 * @param destination
 	 */
-	public void importDatabase(){
-		int i;
+	public void importV38Database(){
+		try{
+			System.out.println("Importing v34 - v38 database from "+sourcePath);
 
-		System.out.println("Importing Terms");
+			FieldIndex terms = getFieldIndex(sourceRoot, "md5Term");
+			int i =0;
+			for (Iterator it = terms.iterator(); it.hasNext();) {
+				if(i++ % 9 == 0)
+					System.out.print("Importing term " + i + "/" + terms.size()+"\r");
+				Object object = it.next();
+				addV38TermToDestination(object);
+			}
+			System.out.println("Finished importing " + i + "/" + terms.size() + " terms");
 
-		FieldIndex terms = getFieldIndex(sourceRoot, "md5Term");
-		i =0;
-		for (Iterator it = terms.iterator(); it.hasNext() && i++ < 50;) {
-			Object object = it.next();
-			addTermToDestination(object);
+			System.out.println("\nImporting Queued pages");
+			FieldIndex queuedPages = getFieldIndex(sourceRoot, "queuedPages");
+			i =0;
+			for (Iterator it = queuedPages.iterator(); it.hasNext();) {
+				if(i++ % 9 == 0)
+					System.out.print("Importing queued page " + i + "/" + queuedPages.size() + "\r");
+				Object object = it.next();
+				getPageInDestinationFromV38(object);
+			}
+			System.out.println("Finished importing " + i + "/" + queuedPages.size() + " queued pages");
+
+		}finally{
+			sourcedb.close();
+			destdb.close();
 		}
-
-//		// db 36 will produce suceeded pages when it does the terms as they are referenced in the terms TODO
-//		FieldIndex suceededPages = getFieldIndex(sourceRoot, "succeededPages");
-//		i =0;
-//		for (Iterator it = suceededPages.iterator(); it.hasNext() && i++ < 50;) {
-//			Object object = it.next();
-//			getPageInDestination(object);
-//		}
-
-		System.out.println("Importing Queued page");
-		FieldIndex queuedPages = getFieldIndex(sourceRoot, "queuedPages");
-		i =0;
-		for (Iterator it = queuedPages.iterator(); it.hasNext() && i++ < 50;) {
-			Object object = it.next();
-			getPageInDestination(object);
-		}
-
-		
-		sourcedb.close();
-		destdb.close();
 	}
+
 
 	/**
 	 * Get any relevent data from a Page object and add it to the destination and any relevent indexes if it does not already exist
-	 * @param object
+	 * @param object Page object from V34 - V38 db
 	 * @throws ClassCastException if object passed does not identify itself as a Page
 	 * @throws UnsupportedOperationException if unrecognised field is found in the page, this would be caused by a database version which is not yet supported in this inport code
-	 * TODO check for newer versions, as this will keep the db smaller, it could actually speed it up
 	 */
-	private Page getPageInDestination(Object object) throws ClassCastException {
+	private Page getPageInDestinationFromV38(Object object) throws ClassCastException {
 		if(!object.getClass().getName().equals("plugins.XMLSpider.db.Page"))
 			throw new ClassCastException("Need plugins.XMLSpider.db.Page, got "+object.getClass().getName());
 
 		Field[] fields = object.getClass().getDeclaredFields();
 		long id;				// not used, it will get a new id
 		String uri = null;
-		String uskuri;			// not used, found from uri
-		long edition;			// not used, found from uri
 		String pageTitle = null;
 		Status status = null;
-		int retries = 0;
-		int termCount = 0;		// TODO make sure Library handles 0's here properly
-		String[] meta = null;
 		long lastChange = 0;
 		String comment = null;
-		IPersistentMap<String, ? extends IPersistent> termPosMap = null;
+		IPersistentMap<String, TermPosition> termPosMap = null;
+		long filesize = 0;
+		String mimeType = null;
 		
 		try{
 			for (Field field : fields) {
@@ -138,43 +181,55 @@ public class IndexImporter {
 					id = field.getLong(object);
 				else if(fieldName.equals("uri"))
 					uri = (String)field.get(object);
-				else if(fieldName.equals("uskuri"))
-					uskuri = (String)field.get(object);
-				else if(fieldName.equals("edition"))
-					edition = field.getLong(object);
 				else if(fieldName.equals("pageTitle"))
 					pageTitle = (String)field.get(object);
 				else if(fieldName.equals("status"))
 					status = (Status)field.get(object);
-				else if(fieldName.equals("retries"))
-					retries = field.getInt(object);
-				else if(fieldName.equals("termCount"))
-					termCount = field.getInt(object);
-				else if(fieldName.equals("meta"))
-					meta = (String[])field.get(object);
+				else if(fieldName.equals("filesize"))
+					filesize = field.getLong(object);
+				else if(fieldName.equals("mimetype"))
+					mimeType = (String)field.get(object);
 				else if(fieldName.equals("lastChange"))
 					lastChange = field.getLong(object);
 				else if(fieldName.equals("comment"))
 					comment = (String)field.get(object);
 				else if(fieldName.equals("termPosMap")) // This will be a little more difficult maybe, or just really slow, this will be accessed on the term side of things, thats where we use it
-					termPosMap = (IPersistentMap<String, ? extends IPersistent>)field.get(object);
+					termPosMap = (IPersistentMap<String, TermPosition>)field.get(object);
+				else if(Arrays.asList("uskuri", "edition", "retries", "termCount", "meta").contains(fieldName))
+					;	// ignore
 				else
 					throw new UnsupportedOperationException("dunno what Exception to use but this db version must not be supported yet, please post on devl with the version of db you are importing from : "+fieldName);
 			
 			}
-			Page newPage = destRoot.getPageByURI(new FreenetURI(uri), false, null);
+			Page newPage = destRoot.getPageByURI(new FreenetURI(uri), false, null, allowOld);
 
-			if(newPage != null)
-				return newPage;		// dont change an existing Page, just return it
+			if(newPage != null && ((newPage.getStatus() == Status.SUCCEEDED || (newPage.getStatus() == Status.QUEUED && status == Status.QUEUED) || status == Status.FAILED) ))
+				return newPage;		// dont change an existing Page if it stores more than the importing page, just return it
+			// Otherwise make a new one
+			newPage = destRoot.getPageByURI(new FreenetURI(uri), true, comment, status, allowOld);
 
-			newPage = destRoot.getPageByURI(new FreenetURI(uri), true, comment, status);
-			newPage.setMeta(meta);
 			newPage.setPageTitle(pageTitle);
-			newPage.setTermCount(termCount);
+			if(filesize!=0 && mimeType!=null)
+				newPage.setMeta(
+					"size=" + Long.toString(filesize),
+					"mime=" + mimeType
+				);
+			else if(mimeType!=null)
+				newPage.setMeta("mime=" + mimeType);
+			else if(filesize!=0)
+				newPage.setMeta("size="+Long.toString(filesize));
+			newPage.setRetries(0);
 			newPage.setLastChange(lastChange);
-			newPage.setRetries(retries);
+			
+			int termCount = 0;	// Count the terms in the termPositions map
+			if(termPosMap != null) {
+				for (TermPosition termPos : termPosMap.values()) {
+					termCount += termPos.positions.length;
+				}
+				newPage.setTermCount(termCount);
+			}
 
-			System.out.println("Adding "+object.toString()+" as : "+newPage);
+			//System.out.println("Adding "+object.toString()+" as : "+newPage);
 
 			return newPage;
 		} catch (SecurityException ex) {
@@ -187,52 +242,51 @@ public class IndexImporter {
 		return null;
 	}
 
-	private void addTermToDestination(Object object) {
+	/**
+	 * Imports a Term object from a V34 - V38 db adding it to a new db, adds any pages that contain this term and their TermPositions
+	 * @param object a v34 - v38 Term object
+	 */
+	private void addV38TermToDestination(Object object) {
 		if(!object.getClass().getName().equals("plugins.XMLSpider.db.Term"))
 			throw new ClassCastException("Need plugins.XMLSpider.db.Term, got "+object.getClass().getName());
-		System.out.println("Adding "+object.toString());
+		
+		//System.out.println("Adding "+object.toString());
 
 		Field[] fields = object.getClass().getDeclaredFields();
 		String word = null;
 		String md5;				// not used as it will be generated fresh from the word
-		IPersistentSet pageSet = null;	// we iterate through these pages to add positions
-		IPersistentMap pageMap = null;
+		IPersistentSet pageSet = null;	// we iterate through these pages to add positions & pages
 		
 		try{
 			for (Field field : fields) {
 				field.setAccessible(true);
 				String fieldName = field.getName();
 
-				System.out.println(" field : "+fieldName +" "+field.get(object));
+				//System.out.println(" field : "+fieldName +" "+field.get(object));
 				
-				if(fieldName.equals("word"))
+				if(fieldName.equals("word")) {
 					word = (String)field.get(object);
-				else if (fieldName.equals("md5"))
+					if (XMLSpider.isStopWord(word))
+						return;		// Stopwords are not imported TODO make this optional
+				} else if (fieldName.equals("md5"))
 					md5 = (String)field.get(object);
 				else if (fieldName.equals("pageSet")){
 					pageSet = (IPersistentSet)field.get(object);
 					if(pageSet == null)
-						return;		// if one of these are null it means we cant find out which pages have it
-				}else if (fieldName.equals("pageMap")){
-					pageMap = (IPersistentMap)field.get(object);
-					if(pageMap == null)
-						return;		// if one of these are null it means we cant find out which pages have it
-				}else
+						return;		// if this is null it means we cant find out which pages have it
+				}else if (fieldName.equals("pageMap"))
+					; // ignore
+				else
 					throw new UnsupportedOperationException("dunno what Exception to use but this db version must not be supported yet, please post on devl with the version of db you are importing from : "+fieldName);
 			}
 			
 			Term newTerm = destRoot.getTermByWord(word, true);
-
-			if(pageMap != null){
-				dbType = 40;
-				newTerm.getPositions().putAll(pageMap);
-			} else if (pageSet != null) {
-				dbType = 36;
-				for (Object object1 : pageSet) {
-					Page newPage = getPageInDestination(object1);
-					newTerm.addPage(newPage.getId(), getTermPositions36(object1, newTerm.getMD5()));
-				}
-			} else throw new UnsupportedOperationException("One of those should have worked, this is an older version than the importer copes with");
+			// Iterate through the set of pages containing this term, adding them if neccessary and their TermPositions
+			for (Object object1 : pageSet) {
+				Page newPage = getPageInDestinationFromV38(object1);
+				if(newPage != null)
+					newTerm.addPage(newPage.getId(), getTermPositionsV38(object1, newTerm.getMD5()));
+			}
 			
 		} catch (NoSuchFieldException ex) {
 			Logger.getLogger(IndexImporter.class.getName()).log(Level.SEVERE, null, ex);
@@ -244,7 +298,7 @@ public class IndexImporter {
 	}
 	
 	/**
-	 * Get a database
+	 * Get a perst database
 	 */
 	private Storage getDB(String dbpath) {
 		Storage db = StorageFactory.getInstance().createStorage();
@@ -257,7 +311,12 @@ public class IndexImporter {
 		db.open(dbpath);
 		return db;
 	}
-	
+
+	/**
+	 * Gets the perstroot from a new database or creates a new one if the database doesnt have one
+	 * @param db
+	 * @return
+	 */
 	private PerstRoot getPerstRoot(Storage db) {
 		PerstRoot root = (PerstRoot) db.getRoot();
 		if (root == null)
@@ -267,13 +326,18 @@ public class IndexImporter {
 		return root;
 	}
 
-	private FieldIndex getFieldIndex(IPersistent sourceRoot, String fieldIndexName) {
+	/**
+	 * Gets a FieldIndex from a root
+	 * @param root database root to look for FieldIndex
+	 * @param fieldIndexName name of FieldIndex to find
+	 * @return the FieldIndex from the db
+	 */
+	private FieldIndex getFieldIndex(IPersistent root, String fieldIndexName) {
 		try {
 			//PerstRoot destinationRoot = de
-			Field suceededPagesField = sourceRoot.getClass().getDeclaredField(fieldIndexName);
+			Field suceededPagesField = root.getClass().getDeclaredField(fieldIndexName);
 			suceededPagesField.setAccessible(true);
-			FieldIndex suceededPages = (FieldIndex)suceededPagesField.get(sourceRoot);
-			System.out.println("field = " + suceededPages);
+			FieldIndex suceededPages = (FieldIndex)suceededPagesField.get(root);
 			return suceededPages;
 		} catch (IllegalArgumentException ex) {
 			Logger.getLogger(IndexImporter.class.getName()).log(Level.SEVERE, null, ex);
@@ -287,9 +351,11 @@ public class IndexImporter {
 		return null;
 	}
 
-	// Takes a page from a 36 version and returns a new TermPosition for the md5 supplied
-	private TermPosition getTermPositions36(Object object1, String mD5) throws NoSuchFieldException, IllegalArgumentException, IllegalAccessException {
-		Map<String, ? extends IPersistent> termPosMap = (Map<String, ? extends IPersistent>)object1.getClass().getDeclaredField("termPosMap").get(object1);
+	// Takes a page from a 34 - 38 version db and returns a new TermPosition for the md5 supplied
+	private TermPosition getTermPositionsV38(Object object1, String mD5) throws NoSuchFieldException, IllegalArgumentException, IllegalAccessException {
+		Field termPosField = object1.getClass().getDeclaredField("termPosMap");
+		termPosField.setAccessible(true);
+		Map<String, ? extends IPersistent> termPosMap = (Map<String, ? extends IPersistent>)termPosField.get(object1);
 		IPersistent termPos = termPosMap.get(mD5);
 		int[] positions = (int[]) termPos.getClass().getDeclaredField("positions").get(termPos);
 		return new TermPosition(destdb, positions);

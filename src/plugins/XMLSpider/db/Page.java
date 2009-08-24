@@ -5,6 +5,7 @@ package plugins.XMLSpider.db;
 
 import freenet.keys.FreenetURI;
 import plugins.XMLSpider.org.garret.perst.FieldIndex;
+import plugins.XMLSpider.org.garret.perst.IPersistentMap;
 import plugins.XMLSpider.org.garret.perst.Persistent;
 import plugins.XMLSpider.org.garret.perst.Storage;
 
@@ -33,6 +34,14 @@ public class Page extends Persistent implements Comparable<Page> {
 	protected long lastChange;
 	/** Comment, for debugging */
 	protected String comment;
+	
+	
+	
+	/** Only for importing
+	 */
+	private IPersistentMap<String, TermPosition> termPosMap;
+	private long filesize;
+	private String mimetype;
 
 	public Page() {
 	}
@@ -120,7 +129,7 @@ public class Page extends Persistent implements Comparable<Page> {
 		return pageTitle;
 	}
 	
-	public void setMeta(String[] meta) {
+	public void setMeta(String... meta) {
 		this.meta = meta;
 	}
 

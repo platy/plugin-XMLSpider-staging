@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 import plugins.XMLSpider.org.garret.perst.IPersistentMap;
+import plugins.XMLSpider.org.garret.perst.IPersistentSet;
 import plugins.XMLSpider.org.garret.perst.Persistent;
 import plugins.XMLSpider.org.garret.perst.Storage;
 
@@ -18,6 +19,9 @@ public class Term extends Persistent {
 	String md5;
 	/** Term */
 	String word;
+
+	/** Exists for the purpose of importing */
+	private IPersistentSet<Page> pageSet;
 	
 	/** Pages containing this Term */
 	IPersistentMap<Long, TermPosition> pageMap; // TODO this could be simplified too, maybe an array would be better
@@ -29,6 +33,7 @@ public class Term extends Persistent {
 		this.word = word;
 		md5 = MD5(word);
 		pageMap = storage.<Long, TermPosition> createMap(Long.class);
+		pageSet = null;
 //		pagecount = 0;
 //		pageid = new long[0];
 //		positions = new TermPosition[0];
@@ -37,6 +42,7 @@ public class Term extends Persistent {
 	}
 
 	public Term() {
+		pageSet = null;
 	}
 	
 	public void addPage(Long page, TermPosition termPosition) {

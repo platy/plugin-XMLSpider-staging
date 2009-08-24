@@ -112,11 +112,11 @@ public class PerstRoot extends Persistent {
 		}
 	}
 	
-	public Page getPageByURI(FreenetURI uri, boolean create, String comment) {
-		return getPageByURI(uri, create, comment, Status.QUEUED);
+	public Page getPageByURI(FreenetURI uri, boolean create, String comment, boolean allowOld) {
+		return getPageByURI(uri, create, comment, Status.QUEUED, allowOld);
 	}
 
-	public Page getPageByURI(FreenetURI uri, boolean create, String comment, Status initialStatus) {
+	public Page getPageByURI(FreenetURI uri, boolean create, String comment, Status initialStatus, boolean allowOld) {//TODO old
 		idPage.exclusiveLock();
 		uriPage.exclusiveLock();
 		uskPage.exclusiveLock();
@@ -137,7 +137,7 @@ public class PerstRoot extends Persistent {
 		try {
 			Page page = uriPage.get(new Key(uri.toString()));
 
-			if (create && page == null) {
+			if (create && page == null && (allowOld || !newerSuceeded(uri))) {
 				page = new Page(uri, comment, getStorage());
 
 				idPage.append(page);
@@ -184,6 +184,24 @@ public class PerstRoot extends Persistent {
 		} finally {
 			idPage.unlock();
 		}
+	}
+
+	/**
+	 * Checks whether a newer edition of an USK has suceeded, returns true if
+	 * this is a usk and a newer one has suceeded, returns false otherwise
+	 * @param uri
+	 * @return
+	 */
+	public boolean newerSuceeded(FreenetURI uri) {
+		if(uri.isUSK() || uri.isSSKForUSK()) {
+			ArrayList<Page> editions = getAllEditions(uri);
+			for (Page page : editions) {
+				if (page.getStatus()==Status.SUCCEEDED && page.getEdition() > uri.getEdition())
+					return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**

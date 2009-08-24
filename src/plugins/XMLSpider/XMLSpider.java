@@ -167,7 +167,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 		db.beginThreadTransaction(Storage.EXCLUSIVE_TRANSACTION);
 		boolean dbTransactionEnded = false;
 		try {
-			Page page = getRoot().getPageByURI(uri, true, comment);
+			Page page = getRoot().getPageByURI(uri, true, comment, true);
 			if (force && page.getStatus() != Status.QUEUED) {
 				page.setStatus(Status.QUEUED);
 				page.setComment(comment);
@@ -249,16 +249,8 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 	 * @param uri
 	 * @return
 	 */
-	private boolean newerSuceeded(FreenetURI uri) {
-		if(uri.isUSK() || uri.isSSKForUSK()) {
-			ArrayList<Page> editions = getRoot().getAllEditions(uri);
-			for (Page page : editions) {
-				if (page.getEdition() > uri.getEdition())
-					return true;
-			}
-		}
-
-		return false;
+	public boolean newerSuceeded(FreenetURI uri) {
+		return getRoot().newerSuceeded(uri);
 	}
 
 	/**
@@ -516,10 +508,10 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 		String mimeType = cm.getMIMEType();
 		
 		// Set info on page
-		page.setMeta(new String[]{
+		page.setMeta(
 			"size=" + Long.toString(data.size()),
 			"mime=" + mimeType
-		});
+		);
 		Logger.normal(this, "mime : " + mimeType);
 
 		boolean dbTransactionEnded = false;
