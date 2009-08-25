@@ -8,7 +8,7 @@ import plugins.XMLSpider.org.garret.perst.Storage;
 
 public class TermPosition extends Persistent {
 	/** Position List */
-	public int[] positions;
+	private int[] positions;
 
 	public TermPosition() {
 	}
@@ -33,5 +33,14 @@ public class TermPosition extends Persistent {
 
 	public synchronized int[] getPositions() {
 		return positions;
+	}
+
+	/**
+	 * Creates a clone of this TermPosition in the specified db, doesnt copy the array, i dont think thats neccessary
+	 * @param storage
+	 * @return
+	 */
+	public TermPosition clone(Storage storage) {
+		return new TermPosition(storage, positions);
 	}
 }

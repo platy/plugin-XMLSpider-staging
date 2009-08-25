@@ -512,7 +512,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 			"size=" + Long.toString(data.size()),
 			"mime=" + mimeType
 		);
-		Logger.normal(this, "mime : " + mimeType);
+		//Logger.normal(this, "mime : " + mimeType);
 
 		boolean dbTransactionEnded = false;
 		db.beginThreadTransaction(Storage.EXCLUSIVE_TRANSACTION);
@@ -824,7 +824,7 @@ public class XMLSpider implements FredPlugin, FredPluginThreadless,
 		"the", "and", "that", "have", "for"		// English stop words
 	});
 	public static boolean isStopWord(String word) {
-		return stopWords.contains(word);
+		return word.length() < 3 || stopWords.contains(word);
 	}
 
 	public void onFoundEdition(long l, USK key, ObjectContainer container, ClientContext context, boolean metadata,

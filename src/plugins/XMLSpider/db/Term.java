@@ -6,6 +6,7 @@ package plugins.XMLSpider.db;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -27,7 +28,7 @@ public class Term extends Persistent {
 	IPersistentMap<Long, TermPosition> pageMap; // TODO this could be simplified too, maybe an array would be better
 //	long[] pageid;
 //	TermPosition[] positions;	// Would this be better?
-//	int pagecount;
+//	or IPersistentMap<Long, int[]> pageMap?
 
 	public Term(String word, Storage storage) {
 		this.word = word;
@@ -127,5 +128,15 @@ public class Term extends Persistent {
 			} while (two_halfs++ < 1);
 		}
 		return buf.toString();
+	}
+
+
+	/**
+	 * Create a new term of the current version from this Term if this is V34 - V38
+	 * @param storage db to store new Term in
+	 * @return
+	 */
+	public Iterator<Page> v38PageIterator() {
+		return pageSet.iterator();
 	}
 }

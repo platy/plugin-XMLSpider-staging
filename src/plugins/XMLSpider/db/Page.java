@@ -4,6 +4,8 @@
 package plugins.XMLSpider.db;
 
 import freenet.keys.FreenetURI;
+import freenet.support.Logger;
+import java.net.MalformedURLException;
 import plugins.XMLSpider.org.garret.perst.FieldIndex;
 import plugins.XMLSpider.org.garret.perst.IPersistentMap;
 import plugins.XMLSpider.org.garret.perst.Persistent;
@@ -36,12 +38,7 @@ public class Page extends Persistent implements Comparable<Page> {
 	protected String comment;
 	
 	
-	
-	/** Only for importing
-	 */
-	private IPersistentMap<String, TermPosition> termPosMap;
-	private long filesize;
-	private String mimetype;
+
 
 	public Page() {
 	}
@@ -215,4 +212,56 @@ public class Page extends Persistent implements Comparable<Page> {
 			}
 		}
 	}
+
+
+
+	/** Only for importing
+	 */
+	private IPersistentMap<String, TermPosition> termPosMap;
+	private long filesize;
+	private String mimetype;
+
+
+
+	/**
+	 * Creates a clone of this Page in another db and converted into the current Page format from the v38 format
+	 * @param storage db to put the result in
+	 * @param allowOld whether to copy old Pages too, if false, old USK editions will be ignored where possible
+	 * @return
+	 * @throws java.net.MalformedURLException
+	 */
+	public Page v38ImportPage(Storage storage, boolean allowOld) throws MalformedURLException {
+		Page p = ((PerstRoot)storage.getRoot()).getPageByURI(new FreenetURI(uri), true, comment, status, allowOld);
+		if (p==null){
+			Logger.minor(this, "Not importing from "+toString());
+			return null;
+		}
+
+		p.pageTitle = pageTitle;
+		p.status = status;
+		p.postModify();
+		p.lastChange = lastChange;
+
+		if(filesize!=0 && mimetype!=null)
+			p.setMeta(
+				"size=" + Long.toString(filesize),
+				"mime=" + mimetype
+			);
+		else if(mimetype!=null)
+			p.setMeta("mime=" + mimetype);
+		else if(filesize!=0)
+			p.setMeta("size="+Long.toString(filesize));
+
+		p.termCount = 0;
+		if(termPosMap != null)
+			for (TermPosition termPosition : termPosMap.values()) {
+				p.termCount += termPosition.getPositions().length;
+			}
+		return p;
+	}
+
+	public TermPosition v38GetTermPosition(String md5) {
+		return termPosMap.get(md5);
+	}
+
 }

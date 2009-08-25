@@ -586,7 +586,7 @@ public class IndexWriter {
 							uriElement.setAttributeNS(null, "id", Long.toString(page));
 
 							/* Position by position */
-							int[] positions = termPos.positions;
+							int[] positions = termPos.getPositions();
 
 							StringBuilder positionList = new StringBuilder();
 
